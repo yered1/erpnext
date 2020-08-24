@@ -22,16 +22,10 @@ class HealthcareServiceUnit(NestedSet):
 		super(HealthcareServiceUnit, self).on_update()
 		self.validate_one_root()
 
-	def after_insert(self):
-		if self.is_group:
+	def validate(self):
+		if self.is_group == 1:
 			self.allow_appointments = 0
 			self.overlap_appointments = 0
 			self.inpatient_occupancy = 0
-		elif self.service_unit_type:
-			service_unit_type = frappe.get_doc('Healthcare Service Unit Type', self.service_unit_type)
-			self.allow_appointments = service_unit_type.allow_appointments
-			self.overlap_appointments = service_unit_type.overlap_appointments
-			self.inpatient_occupancy = service_unit_type.inpatient_occupancy
-			if self.inpatient_occupancy:
-				self.occupancy_status = 'Vacant'
-				self.overlap_appointments = 0
+		elif self.allow_appointments != 1:
+			self.overlap_appointments = 0

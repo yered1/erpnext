@@ -1,5 +1,4 @@
 {
- "actions": [],
  "allow_import": 1,
  "allow_rename": 1,
  "autoname": "field:company_name",
@@ -22,10 +21,8 @@
   "default_letter_head",
   "default_holiday_list",
   "default_finance_book",
-  "default_selling_terms",
-  "default_buying_terms",
-  "default_warehouse_for_sales_return",
-  "default_in_transit_warehouse",
+  "standard_working_hours",
+  "default_terms",
   "column_break_10",
   "country",
   "create_chart_of_accounts_based_on",
@@ -67,12 +64,10 @@
   "payment_terms",
   "auto_accounting_for_stock_settings",
   "enable_perpetual_inventory",
-  "enable_perpetual_inventory_for_non_stock_items",
   "default_inventory_account",
   "stock_adjustment_account",
   "column_break_32",
   "stock_received_but_not_billed",
-  "service_received_but_not_billed",
   "expenses_included_in_valuation",
   "fixed_asset_depreciation_settings",
   "accumulated_depreciation_account",
@@ -159,7 +154,6 @@
   {
    "fieldname": "parent_company",
    "fieldtype": "Link",
-   "ignore_user_permissions": 1,
    "in_list_view": 1,
    "label": "Parent Company",
    "options": "Company"
@@ -176,10 +170,9 @@
    "label": "Company Description"
   },
   {
-   "collapsible": 1,
    "fieldname": "sales_settings",
    "fieldtype": "Section Break",
-   "label": "Sales Settings"
+   "label": "Sales"
   },
   {
    "fieldname": "sales_monthly_history",
@@ -241,10 +234,15 @@
    "options": "Holiday List"
   },
   {
-   "fieldname": "default_warehouse_for_sales_return",
+   "fieldname": "standard_working_hours",
+   "fieldtype": "Float",
+   "label": "Standard Working Hours"
+  },
+  {
+   "fieldname": "default_terms",
    "fieldtype": "Link",
-   "label": "Default Warehouse for Sales Return",
-   "options": "Warehouse"
+   "label": "Default Terms",
+   "options": "Terms and Conditions"
   },
   {
    "fieldname": "column_break_10",
@@ -275,7 +273,6 @@
    "depends_on": "eval:doc.create_chart_of_accounts_based_on===\"Existing Company\"",
    "fieldname": "existing_company",
    "fieldtype": "Link",
-   "ignore_user_permissions": 1,
    "label": "Existing Company ",
    "no_copy": 1,
    "options": "Company"
@@ -533,7 +530,6 @@
    "options": "Account"
   },
   {
-   "collapsible": 1,
    "fieldname": "fixed_asset_depreciation_settings",
    "fieldtype": "Section Break",
    "label": "Fixed Asset Depreciation Settings"
@@ -606,7 +602,6 @@
    "options": "Role"
   },
   {
-   "collapsible": 1,
    "description": "For reference only.",
    "fieldname": "company_info",
    "fieldtype": "Section Break",
@@ -708,50 +703,15 @@
    "label": "old_parent",
    "print_hide": 1,
    "read_only": 1
-  },
-  {
-   "fieldname": "default_selling_terms",
-   "fieldtype": "Link",
-   "label": "Default Selling Terms",
-   "options": "Terms and Conditions"
-  },
-  {
-   "fieldname": "default_buying_terms",
-   "fieldtype": "Link",
-   "label": "Default Buying Terms",
-   "options": "Terms and Conditions"
-  },
-  {
-   "fieldname": "service_received_but_not_billed",
-   "fieldtype": "Link",
-   "ignore_user_permissions": 1,
-   "label": "Service Received But Not Billed",
-   "no_copy": 1,
-   "options": "Account"
-  },
-  {
-   "default": "0",
-   "fieldname": "enable_perpetual_inventory_for_non_stock_items",
-   "fieldtype": "Check",
-   "label": "Enable Perpetual Inventory For Non Stock Items"
-  },
-  {
-   "fieldname": "default_in_transit_warehouse",
-   "fieldtype": "Link",
-   "label": "Default In Transit Warehouse",
-   "options": "Warehouse"
   }
  ],
  "icon": "fa fa-building",
  "idx": 1,
  "image_field": "company_logo",
- "is_tree": 1,
- "links": [],
- "modified": "2020-08-06 00:38:08.311216",
+ "modified": "2019-06-13 18:03:14.764423",
  "modified_by": "Administrator",
  "module": "Setup",
  "name": "Company",
- "nsm_parent_field": "parent_company",
  "owner": "Administrator",
  "permissions": [
   {
@@ -790,18 +750,6 @@
   {
    "read": 1,
    "role": "Projects User"
-  },
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "Accounts Manager",
-   "share": 1,
-   "write": 1
   }
  ],
  "show_name_in_global_search": 1,

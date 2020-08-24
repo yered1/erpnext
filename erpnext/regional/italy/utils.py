@@ -13,8 +13,6 @@ from erpnext.regional.italy import state_codes
 def update_itemised_tax_data(doc):
 	if not doc.taxes: return
 
-	if doc.doctype == "Purchase Invoice": return
-
 	itemised_tax = get_itemised_tax(doc.taxes)
 
 	for row in doc.items:
@@ -82,7 +80,7 @@ def prepare_invoice(invoice, progressive_number):
 		invoice.stamp_duty = stamp_duty_charge_row.tax_amount
 
 	for item in invoice.e_invoice_items:
-		if item.tax_rate == 0.0 and item.tax_amount == 0.0 and tax_data.get("0.0"):
+		if item.tax_rate == 0.0 and item.tax_amount == 0.0:
 			item.tax_exemption_reason = tax_data["0.0"]["tax_exemption_reason"]
 
 	customer_po_data = {}
@@ -178,10 +176,6 @@ def get_invoice_summary(items, taxes):
 						summary_data[key]["tax_exemption_reason"] = tax.tax_exemption_reason
 						summary_data[key]["tax_exemption_law"] = tax.tax_exemption_law
 
-			if summary_data.get("0.0") and tax.charge_type in ["On Previous Row Total",
-				"On Previous Row Amount"]:
-				summary_data[key]["taxable_amount"] = tax.total
-
 			if summary_data == {}: #Implies that Zero VAT has not been set on any item.
 				summary_data.setdefault("0.0", {"tax_amount": 0.0, "taxable_amount": tax.total,
 					"tax_exemption_reason": tax.tax_exemption_reason, "tax_exemption_law": tax.tax_exemption_law})
@@ -252,7 +246,7 @@ def sales_invoice_validate(doc):
 	else:
 		for row in doc.taxes:
 			if row.rate == 0 and row.tax_amount == 0 and not row.tax_exemption_reason:
-				frappe.throw(_("Row {0}: Please set at Tax Exemption Reason in Sales Taxes and Charges").format(row.idx),
+				frappe.throw(_("Row {0}: Please set at Tax Exemption Reason in Sales Taxes and Charges".format(row.idx)),
 					title=_("E-Invoicing Information Missing"))
 
 	for schedule in doc.payment_schedule:
@@ -272,10 +266,10 @@ def sales_invoice_on_submit(doc, method):
 	else:
 		for schedule in doc.payment_schedule:
 			if not schedule.mode_of_payment:
-				frappe.throw(_("Row {0}: Please set the Mode of Payment in Payment Schedule").format(schedule.idx),
+				frappe.throw(_("Row {0}: Please set the Mode of Payment in Payment Schedule".format(schedule.idx)),
 					title=_("E-Invoicing Information Missing"))
 			elif not frappe.db.get_value("Mode of Payment", schedule.mode_of_payment, "mode_of_payment_code"):
-				frappe.throw(_("Row {0}: Please set the correct code on Mode of Payment {1}").format(schedule.idx, schedule.mode_of_payment),
+				frappe.throw(_("Row {0}: Please set the correct code on Mode of Payment {1}".format(schedule.idx, schedule.mode_of_payment)),
 					title=_("E-Invoicing Information Missing"))
 
 	prepare_and_attach_invoice(doc)
@@ -284,11 +278,7 @@ def prepare_and_attach_invoice(doc, replace=False):
 	progressive_name, progressive_number = get_progressive_name_and_number(doc, replace)
 
 	invoice = prepare_invoice(doc, progressive_number)
-	item_meta = frappe.get_meta("Sales Invoice Item")
-
-	invoice_xml = frappe.render_template('erpnext/regional/italy/e-invoice.xml',
-		context={"doc": invoice, "item_meta": item_meta}, is_path=True)
-
+	invoice_xml = frappe.render_template('erpnext/regional/italy/e-invoice.xml', context={"doc": invoice}, is_path=True)
 	invoice_xml = invoice_xml.replace("&", "&amp;")
 
 	xml_filename = progressive_name + ".xml"
@@ -336,9 +326,6 @@ def get_company_country(company):
 	return frappe.get_cached_value('Company', company, 'country')
 
 def get_e_invoice_attachments(invoice):
-	if not invoice.company_tax_id:
-		return []
-
 	out = []
 	attachments = get_attachments(invoice.doctype, invoice.name)
 	company_tax_id = invoice.company_tax_id if invoice.company_tax_id.startswith("IT") else "IT" + invoice.company_tax_id
@@ -355,7 +342,7 @@ def validate_address(address_name):
 
 	for field in fields:
 		if not data.get(field):
-			frappe.throw(_("Please set {0} for address {1}").format(field.replace('-',''), address_name),
+			frappe.throw(_("Please set {0} for address {1}".format(field.replace('-',''), address_name)),
 				title=_("E-Invoicing Information Missing"))
 
 def get_unamended_name(doc):

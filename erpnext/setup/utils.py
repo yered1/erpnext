@@ -106,8 +106,7 @@ def get_exchange_rate(from_currency, to_currency, transaction_date=None, args=No
 			# expire in 6 hours
 			response.raise_for_status()
 			value = response.json()["rates"][to_currency]
-
-			cache.set_value(key, value, expires_in_sec=6 * 60 * 60)
+			cache.setex(key, value, 6 * 60 * 60)
 		return flt(value)
 	except:
 		frappe.log_error(title="Get Exchange Rate")
@@ -142,6 +141,6 @@ def insert_record(records):
 				raise
 
 def welcome_email():
-	site_name = get_default_company() or "ERPNext"
-	title = _("Welcome to {0}").format(site_name)
+	site_name = get_default_company()
+	title = _("Welcome to {0}".format(site_name))
 	return title

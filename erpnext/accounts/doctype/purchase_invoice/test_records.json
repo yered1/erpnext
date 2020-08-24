@@ -138,12 +138,13 @@
     "row_id": 7
    }
   ],
+  "posting_date": "2013-02-03",
   "supplier": "_Test Supplier",
   "supplier_name": "_Test Supplier"
  },
-
-
-
+ 
+ 
+ 
  {
   "bill_no": "NA",
   "buying_price_list": "_Test Price List",
@@ -203,6 +204,7 @@
     "tax_amount": 150.0
    }
   ],
+  "posting_date": "2013-02-03",
   "supplier": "_Test Supplier",
   "supplier_name": "_Test Supplier"
  }

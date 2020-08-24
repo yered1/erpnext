@@ -1,13 +1,11 @@
 {
- "actions": [],
- "allow_rename": 1,
- "autoname": "format:PRC-{quality_procedure_name}",
+ "autoname": "format:PRC-{procedure}",
  "creation": "2018-10-06 00:06:29.756804",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "quality_procedure_name",
+  "procedure",
   "parent_quality_procedure",
   "is_group",
   "sb_00",
@@ -64,20 +62,17 @@
    "options": "Quality Procedure Process"
   },
   {
-   "fieldname": "quality_procedure_name",
+   "fieldname": "procedure",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Quality Procedure",
+   "label": "Procedure",
    "reqd": 1
   }
  ],
- "is_tree": 1,
- "links": [],
- "modified": "2020-06-17 17:25:03.434953",
+ "modified": "2019-05-26 22:11:53.771428",
  "modified_by": "Administrator",
  "module": "Quality Management",
  "name": "Quality Procedure",
- "nsm_parent_field": "parent_quality_procedure",
  "owner": "Administrator",
  "permissions": [
   {

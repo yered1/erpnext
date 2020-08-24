@@ -8,8 +8,11 @@ def get_data():
 		'fieldname': 'bank',
 		'transactions': [
 			{
-				'label': _('Bank Details'),
+				'label': _('Bank Deatils'),
 				'items': ['Bank Account', 'Bank Guarantee']
+			},
+			{
+				'items': ['Payment Order']
 			}
 		]
 	}

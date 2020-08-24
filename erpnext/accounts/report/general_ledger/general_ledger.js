@@ -53,7 +53,7 @@ frappe.query_reports["General Ledger"] = {
 			"label": __("Voucher No"),
 			"fieldtype": "Data",
 			on_change: function() {
-				frappe.query_report.set_filter_value('group_by', "Group by Voucher (Consolidated)");
+				frappe.query_report.set_filter_value('group_by', "");
 			}
 		},
 		{
@@ -72,25 +72,46 @@ frappe.query_reports["General Ledger"] = {
 		{
 			"fieldname":"party",
 			"label": __("Party"),
-			"fieldtype": "MultiSelectList",
-			get_data: function(txt) {
+			"fieldtype": "MultiSelect",
+			get_data: function() {
 				if (!frappe.query_report.filters) return;
+				var party_type = frappe.query_report.get_filter_value('party_type');
+				var parties = frappe.query_report.get_filter_value('party');
+				if(!party_type) return;
 
-				let party_type = frappe.query_report.get_filter_value('party_type');
-				if (!party_type) return;
+				const values = parties.split(/\s*,\s*/).filter(d => d);
+				const txt = parties.match(/[^,\s*]*$/)[0] || '';
+				let data = [];
 
-				return frappe.db.get_link_options(party_type, txt);
+				frappe.call({
+					type: "GET",
+					method:'frappe.desk.search.search_link',
+					async: false,
+					no_spinner: true,
+					args: {
+						doctype: frappe.query_report.get_filter_value('party_type'),
+						txt: txt,
+						filters: {
+							"name": ["not in", values]
+						}
+					},
+					callback: function(r) {
+						data = r.results;
+					}
+				});
+				return data;
 			},
 			on_change: function() {
 				var party_type = frappe.query_report.get_filter_value('party_type');
 				var parties = frappe.query_report.get_filter_value('party');
+				const values = parties.split(/\s*,\s*/).filter(d => d);
 
-				if(!party_type || parties.length === 0 || parties.length > 1) {
+				if(!party_type || !parties || values.length>1) {
 					frappe.query_report.set_filter_value('party_name', "");
 					frappe.query_report.set_filter_value('tax_id', "");
 					return;
 				} else {
-					var party = parties[0];
+					var party = values[0];
 					var fieldname = erpnext.utils.get_party_name(party_type) || "name";
 					frappe.db.get_value(party_type, party, fieldname, function(value) {
 						frappe.query_report.set_filter_value('party_name', value[fieldname]);
@@ -133,17 +154,62 @@ frappe.query_reports["General Ledger"] = {
 		{
 			"fieldname":"cost_center",
 			"label": __("Cost Center"),
-			"fieldtype": "MultiSelectList",
-			get_data: function(txt) {
-				return frappe.db.get_link_options('Cost Center', txt);
+			"fieldtype": "MultiSelect",
+			get_data: function() {
+				var cost_centers = frappe.query_report.get_filter_value("cost_center") || "";
+
+				const values = cost_centers.split(/\s*,\s*/).filter(d => d);
+				const txt = cost_centers.match(/[^,\s*]*$/)[0] || '';
+				let data = [];
+
+				frappe.call({
+					type: "GET",
+					method:'frappe.desk.search.search_link',
+					async: false,
+					no_spinner: true,
+					args: {
+						doctype: "Cost Center",
+						txt: txt,
+						filters: {
+							"company": frappe.query_report.get_filter_value("company"),
+							"name": ["not in", values]
+						}
+					},
+					callback: function(r) {
+						data = r.results;
+					}
+				});
+				return data;
 			}
 		},
 		{
 			"fieldname":"project",
 			"label": __("Project"),
-			"fieldtype": "MultiSelectList",
-			get_data: function(txt) {
-				return frappe.db.get_link_options('Project', txt);
+			"fieldtype": "MultiSelect",
+			get_data: function() {
+				var projects = frappe.query_report.get_filter_value("project") || "";
+
+				const values = projects.split(/\s*,\s*/).filter(d => d);
+				const txt = projects.match(/[^,\s*]*$/)[0] || '';
+				let data = [];
+
+				frappe.call({
+					type: "GET",
+					method:'frappe.desk.search.search_link',
+					async: false,
+					no_spinner: true,
+					args: {
+						doctype: "Project",
+						txt: txt,
+						filters: {
+							"name": ["not in", values]
+						}
+					},
+					callback: function(r) {
+						data = r.results;
+					}
+				});
+				return data;
 			}
 		},
 		{
@@ -151,18 +217,19 @@ frappe.query_reports["General Ledger"] = {
 			"label": __("Show Opening Entries"),
 			"fieldtype": "Check"
 		},
-		{
-			"fieldname": "include_default_book_entries",
-			"label": __("Include Default Book Entries"),
-			"fieldtype": "Check"
-		},
-		{
-			"fieldname": "show_cancelled_entries",
-			"label": __("Show Cancelled Entries"),
-			"fieldtype": "Check"
-		}
 	]
 }
 
-erpnext.utils.add_dimensions('General Ledger', 15)
+let dimension_filters = erpnext.get_dimension_filters();
+
+dimension_filters.then((dimensions) => {
+	dimensions.forEach((dimension) => {
+		frappe.query_reports["General Ledger"].filters.splice(15, 0 ,{
+			"fieldname": dimension["fieldname"],
+			"label": __(dimension["label"]),
+			"fieldtype": "Link",
+			"options": dimension["document_type"]
+		});
+	});
+});
 

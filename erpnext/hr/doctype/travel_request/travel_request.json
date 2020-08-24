@@ -1,5 +1,4 @@
 {
- "actions": [],
  "autoname": "HR-TRQ-.YYYY.-.#####",
  "creation": "2018-05-15 06:32:33.950356",
  "doctype": "DocType",
@@ -12,6 +11,8 @@
   "column_break_2",
   "purpose_of_travel",
   "details_of_sponsor",
+  "section_break_4",
+  "description",
   "employee_details",
   "employee",
   "employee_name",
@@ -22,8 +23,6 @@
   "personal_id_type",
   "personal_id_number",
   "passport_number",
-  "section_break_4",
-  "description",
   "travel_itinerary",
   "itinerary",
   "costing_details",
@@ -34,8 +33,7 @@
   "event_details",
   "name_of_organizer",
   "address_of_organizer",
-  "other_details",
-  "amended_from"
+  "other_details"
  ],
  "fields": [
   {
@@ -215,8 +213,7 @@
   }
  ],
  "is_submittable": 1,
- "links": [],
- "modified": "2019-12-12 18:42:26.451359",
+ "modified": "2019-05-25 23:15:00.609186",
  "modified_by": "Administrator",
  "module": "HR",
  "name": "Travel Request",

@@ -4,7 +4,6 @@
 from __future__ import unicode_literals
 import frappe
 import erpnext
-import json
 from frappe.utils import flt, nowdate, add_days, cint
 from frappe import _
 
@@ -117,8 +116,6 @@ def create_material_request(material_requests):
 		else:
 			exceptions_list.append(frappe.get_traceback())
 
-		frappe.log_error(frappe.get_traceback())
-
 	for request_type in material_requests:
 		for company in material_requests[request_type]:
 			try:
@@ -161,7 +158,6 @@ def create_material_request(material_requests):
 
 				schedule_dates = [d.schedule_date for d in mr.items]
 				mr.schedule_date = max(schedule_dates or [nowdate()])
-				mr.flags.ignore_mandatory = True
 				mr.insert()
 				mr.submit()
 				mr_list.append(mr)
@@ -199,16 +195,19 @@ def send_email_notification(mr_list):
 		subject=_('Auto Material Requests Generated'), message = msg)
 
 def notify_errors(exceptions_list):
-	subject = _("[Important] [ERPNext] Auto Reorder Errors")
-	content = _("Dear System Manager,") + "<br>" + _("An error occured for certain Items while creating Material Requests based on Re-order level. \
-		Please rectify these issues :") + "<br>"
+	subject = "[Important] [ERPNext] Auto Reorder Errors"
+	content = """Dear System Manager,
 
-	for exception in exceptions_list:
-		exception = json.loads(exception)
-		error_message = """<div class='small text-muted'>{0}</div><br>""".format(_(exception.get("message")))
-		content += error_message
+An error occured for certain Items while creating Material Requests based on Re-order level.
 
-	content += _("Regards,") + "<br>" + _("Administrator")
+Please rectify these issues:
+---
+<pre>
+%s
+</pre>
+---
+Regards,
+Administrator""" % ("\n\n".join(exceptions_list),)
 
 	from frappe.email import sendmail_to_system_managers
 	sendmail_to_system_managers(subject, content)

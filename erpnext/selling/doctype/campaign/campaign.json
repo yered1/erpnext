@@ -6,13 +6,18 @@
  "description": "Keep Track of Sales Campaigns. Keep track of Leads, Quotations, Sales Order etc from Campaigns to gauge Return on Investment. ",
  "doctype": "DocType",
  "document_type": "Setup",
- "engine": "InnoDB",
  "field_order": [
   "campaign",
   "campaign_name",
   "naming_series",
-  "campaign_schedules_section",
-  "campaign_schedules",
+  "from_date",
+  "column_break1",
+  "status",
+  "to_date",
+  "budget_section",
+  "currency",
+  "column_break2",
+  "budget",
   "description_section",
   "description"
  ],
@@ -48,24 +53,56 @@
    "width": "300px"
   },
   {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "\nPlanned\nIn Progress\nCompleted\nCancelled",
+   "reqd": 1,
+   "default": "Planned"
+  },
+  {
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "label": "From Date"
+  },
+  {
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "label": "To Date"
+  },
+  {
+   "fieldname": "column_break1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "budget",
+   "fieldtype": "Currency",
+   "label": "Budget"
+  },
+  {
    "fieldname": "description_section",
    "fieldtype": "Section Break"
   },
   {
-   "fieldname": "campaign_schedules",
-   "fieldtype": "Table",
-   "label": "Campaign Schedules",
-   "options": "Campaign Email Schedule"
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency"
   },
   {
-   "fieldname": "campaign_schedules_section",
+   "fieldname": "column_break2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "budget_section",
    "fieldtype": "Section Break",
-   "label": "Campaign Schedules"
+   "label": "BUDGET"
   }
  ],
  "icon": "fa fa-bullhorn",
  "idx": 1,
- "modified": "2019-07-22 12:03:39.832342",
+ "modified": "2019-04-29 22:09:39.251884",
  "modified_by": "Administrator",
  "module": "Selling",
  "name": "Campaign",
@@ -103,7 +140,5 @@
    "write": 1
   }
  ],
- "quick_entry": 1,
- "sort_field": "modified",
- "sort_order": "DESC"
+ "quick_entry": 1
 }

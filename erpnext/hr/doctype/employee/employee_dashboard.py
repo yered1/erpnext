@@ -6,13 +6,10 @@ def get_data():
 		'heatmap': True,
 		'heatmap_message': _('This is based on the attendance of this Employee'),
 		'fieldname': 'employee',
-		'non_standard_fieldnames': {
-			'Bank Account': 'party'
-		},
 		'transactions': [
 			{
 				'label': _('Leave and Attendance'),
-				'items': ['Attendance', 'Attendance Request', 'Leave Application', 'Leave Allocation', 'Employee Checkin']
+				'items': ['Attendance', 'Attendance Request', 'Leave Application', 'Leave Allocation']
 			},
 			{
 				'label': _('Lifecycle'),
@@ -24,7 +21,7 @@ def get_data():
 			},
 			{
 				'label': _('Expense'),
-				'items': ['Expense Claim', 'Travel Request', 'Employee Advance']
+				'items': ['Expense Claim', 'Travel Request']
 			},
 			{
 				'label': _('Benefit'),
@@ -36,7 +33,7 @@ def get_data():
 			},
 			{
 				'label': _('Payroll'),
-				'items': ['Salary Structure Assignment', 'Salary Slip', 'Additional Salary', 'Timesheet','Employee Incentive', 'Retention Bonus', 'Bank Account']
+				'items': ['Salary Structure Assignment', 'Salary Slip', 'Additional Salary', 'Timesheet','Employee Incentive', 'Retention Bonus']
 			},
 			{
 				'label': _('Training'),

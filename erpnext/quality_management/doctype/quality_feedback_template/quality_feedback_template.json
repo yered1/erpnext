@@ -1,5 +1,4 @@
 {
- "actions": [],
  "autoname": "format:TMPL-{template}",
  "creation": "2019-05-26 21:17:24.283061",
  "doctype": "DocType",
@@ -31,12 +30,10 @@
    "fieldname": "parameters",
    "fieldtype": "Table",
    "label": "Parameters",
-   "options": "Quality Feedback Template Parameter",
-   "reqd": 1
+   "options": "Quality Feedback Template Parameter"
   }
  ],
- "links": [],
- "modified": "2020-07-03 16:06:03.749415",
+ "modified": "2019-05-26 21:48:47.770610",
  "modified_by": "Administrator",
  "module": "Quality Management",
  "name": "Quality Feedback Template",

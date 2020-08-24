@@ -6,6 +6,10 @@ from erpnext.accounts.doctype.fiscal_year.fiscal_year import get_from_and_to_dat
 from frappe.utils import cint, get_datetime_str, formatdate, flt
 
 __exchange_rates = {}
+P_OR_L_ACCOUNTS = list(
+	sum(frappe.get_list('Account', fields=['name'], or_filters=[{'root_type': 'Income'}, {'root_type': 'Expense'}], as_list=True), ())
+)
+
 
 def get_currency(filters):
 	"""
@@ -69,7 +73,18 @@ def get_rate_as_at(date, from_currency, to_currency):
 
 	return rate
 
-def convert_to_presentation_currency(gl_entries, currency_info, company):
+
+def is_p_or_l_account(account_name):
+	"""
+	Check if the given `account name` is an `Account` with `root_type` of either 'Income'
+	or 'Expense'.
+	:param account_name:
+	:return: Boolean
+	"""
+	return account_name in P_OR_L_ACCOUNTS
+
+
+def convert_to_presentation_currency(gl_entries, currency_info):
 	"""
 	Take a list of GL Entries and change the 'debit' and 'credit' values to currencies
 	in `currency_info`.
@@ -80,9 +95,6 @@ def convert_to_presentation_currency(gl_entries, currency_info, company):
 	converted_gl_list = []
 	presentation_currency = currency_info['presentation_currency']
 	company_currency = currency_info['company_currency']
-
-	pl_accounts = [d.name for d in frappe.get_list('Account',
-		filters={'report_type': 'Profit and Loss', 'company': company})]
 
 	for entry in gl_entries:
 		account = entry['account']
@@ -95,7 +107,7 @@ def convert_to_presentation_currency(gl_entries, currency_info, company):
 		if account_currency != presentation_currency:
 			value = debit or credit
 
-			date = entry['posting_date'] if account in pl_accounts else currency_info['report_date']
+			date = currency_info['report_date'] if not is_p_or_l_account(account) else entry['posting_date']
 			converted_value = convert(value, presentation_currency, company_currency, date)
 
 			if entry.get('debit'):

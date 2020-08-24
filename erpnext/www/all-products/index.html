@@ -11,7 +11,7 @@
 		<div class="input-group input-group-sm mb-3">
 			<input type="search" class="form-control" placeholder="{{_('Search')}}"
 				aria-label="{{_('Product Search')}}" aria-describedby="product-search"
-				value="{{ frappe.sanitize_html(frappe.form_dict.search) or '' }}"
+				value="{{ frappe.form_dict.search or '' }}"
 			>
 		</div>
 	</div>
@@ -42,7 +42,7 @@
 	</div>
 	<div class="col-12 order-1 col-md-4 order-md-2">
 
-		{% if frappe.form_dict.start or frappe.form_dict.field_filters or frappe.form_dict.attribute_filters or frappe.form_dict.search %}
+		{% if frappe.form_dict.start or frappe.form_dict.field_filters or frappe.form_dict.search %}
 		<a class="mb-3 d-inline-block" href="/all-products">{{ _('Clear filters') }}</a>
 		{% endif  %}
 

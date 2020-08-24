@@ -70,7 +70,7 @@ def get_result(filters):
 		rate = [i.tax_withholding_rate for i in tds_doc.rates
 			if i.fiscal_year == gle_map[d][0].fiscal_year]
 
-		if rate and len(rate) > 0 and tds_deducted:
+		if rate and len(rate) > 0:
 			rate = rate[0]
 
 			if getdate(filters.from_date) <= gle_map[d][0].posting_date \
@@ -111,7 +111,7 @@ def get_gle_map(filters):
 	# {"purchase_invoice": list of dict of all gle created for this invoice}
 	gle_map = {}
 	gle = frappe.db.get_all('GL Entry',\
-		{"voucher_no": ["in", [d.get("name") for d in filters["invoices"]]], 'is_cancelled': 0},
+		{"voucher_no": ["in", [d.get("name") for d in filters["invoices"]]]},
 		["fiscal_year", "credit", "debit", "account", "voucher_no", "posting_date"])
 
 	for d in gle:
@@ -164,7 +164,7 @@ def get_columns(filters):
 		{
 			"label": _("TDS Rate %"),
 			"fieldname": "tds_rate",
-			"fieldtype": "Percent",
+			"fieldtype": "Float",
 			"width": 90
 		},
 		{

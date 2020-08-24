@@ -92,7 +92,8 @@
    {
     "doctype": "Item Tax",
     "parentfield": "taxes",
-    "item_tax_template": "_Test Account Excise Duty @ 10"
+    "item_tax_template": "_Test Account Excise Duty @ 10",
+    "tax_category": ""
    }
   ],
   "stock_uom": "_Test UOM 1"
@@ -370,7 +371,8 @@
    {
     "doctype": "Item Tax",
     "parentfield": "taxes",
-    "item_tax_template": "_Test Account Excise Duty @ 10"
+    "item_tax_template": "_Test Account Excise Duty @ 10",
+    "tax_category": ""
    },
    {
     "doctype": "Item Tax",
@@ -449,13 +451,14 @@
    {
     "doctype": "Item Tax",
     "parentfield": "taxes",
-    "item_tax_template": "_Test Account Excise Duty @ 20"
+    "item_tax_template": "_Test Account Excise Duty @ 20",
+    "tax_category": ""
    },
    {
     "doctype": "Item Tax",
     "parentfield": "taxes",
-    "tax_category": "_Test Tax Category 1",
-    "item_tax_template": "_Test Item Tax Template 1"
+    "item_tax_template": "_Test Item Tax Template 1",
+    "tax_category": "_Test Tax Category 1"
    }
   ]
  }

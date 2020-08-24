@@ -11,11 +11,15 @@
   "item_name",
   "description_section",
   "description",
-  "brand",
-  "col_break7",
   "item_group",
+  "brand",
+  "image_section",
   "image",
   "image_view",
+  "manufacture_details",
+  "manufacturer",
+  "column_break_13",
+  "manufacturer_part_no",
   "quantity_and_rate",
   "received_qty",
   "qty",
@@ -50,25 +54,25 @@
   "item_tax_amount",
   "landed_cost_voucher_amount",
   "rm_supp_cost",
+  "item_weight_details",
+  "weight_per_unit",
+  "total_weight",
+  "column_break_38",
+  "weight_uom",
   "warehouse_section",
   "warehouse",
-  "from_warehouse",
-  "quality_inspection",
-  "serial_no",
-  "col_br_wh",
   "rejected_warehouse",
+  "quality_inspection",
   "batch_no",
+  "col_br_wh",
+  "serial_no",
   "rejected_serial_no",
-  "manufacture_details",
-  "manufacturer",
-  "column_break_13",
-  "manufacturer_part_no",
   "accounting",
   "expense_account",
   "col_break5",
   "is_fixed_asset",
+  "asset",
   "asset_location",
-  "asset_category",
   "deferred_expense_section",
   "deferred_expense_account",
   "service_stop_date",
@@ -81,17 +85,11 @@
   "item_tax_rate",
   "bom",
   "include_exploded_items",
-  "purchase_invoice_item",
   "col_break6",
   "purchase_order",
   "po_detail",
   "purchase_receipt",
   "pr_detail",
-  "item_weight_details",
-  "weight_per_unit",
-  "total_weight",
-  "column_break_38",
-  "weight_uom",
   "accounting_dimensions_section",
   "project",
   "dimension_col_break",
@@ -118,8 +116,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "item_code.item_name",
-   "fetch_if_empty": 1,
    "fieldname": "item_name",
    "fieldtype": "Data",
    "in_global_search": 1,
@@ -199,6 +195,7 @@
    "fieldtype": "Link",
    "label": "UOM",
    "options": "UOM",
+   "print_hide": 1,
    "reqd": 1
   },
   {
@@ -417,7 +414,6 @@
    "print_hide": 1
   },
   {
-   "depends_on": "eval:!doc.is_fixed_asset",
    "fieldname": "batch_no",
    "fieldtype": "Link",
    "label": "Batch No",
@@ -429,14 +425,12 @@
    "fieldtype": "Column Break"
   },
   {
-   "depends_on": "eval:!doc.is_fixed_asset",
    "fieldname": "serial_no",
    "fieldtype": "Text",
    "label": "Serial No",
    "no_copy": 1
   },
   {
-   "depends_on": "eval:!doc.is_fixed_asset",
    "fieldname": "rejected_serial_no",
    "fieldtype": "Text",
    "label": "Rejected Serial No",
@@ -508,8 +502,7 @@
    "depends_on": "enable_deferred_expense",
    "fieldname": "service_stop_date",
    "fieldtype": "Date",
-   "label": "Service Stop Date",
-   "no_copy": 1
+   "label": "Service Stop Date"
   },
   {
    "default": "0",
@@ -525,15 +518,13 @@
    "depends_on": "enable_deferred_expense",
    "fieldname": "service_start_date",
    "fieldtype": "Date",
-   "label": "Service Start Date",
-   "no_copy": 1
+   "label": "Service Start Date"
   },
   {
    "depends_on": "enable_deferred_expense",
    "fieldname": "service_end_date",
    "fieldtype": "Date",
-   "label": "Service End Date",
-   "no_copy": 1
+   "label": "Service End Date"
   },
   {
    "fieldname": "reference",
@@ -550,21 +541,23 @@
   },
   {
    "fieldname": "brand",
-   "fieldtype": "Link",
+   "fieldtype": "Data",
    "hidden": 1,
    "label": "Brand",
-   "print_hide": 1,
-   "options": "Brand"
+   "oldfieldname": "brand",
+   "oldfieldtype": "Data",
+   "print_hide": 1
   },
   {
-   "fetch_from": "item_code.item_group",
-   "fetch_if_empty": 1,
    "fieldname": "item_group",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Item Group",
+   "oldfieldname": "item_group",
+   "oldfieldtype": "Link",
+   "options": "Item Group",
    "print_hide": 1,
-   "read_only": 1,
-   "options": "Item Group"
+   "read_only": 1
   },
   {
    "description": "Tax detail table fetched from item master as a string and stored in this field.\nUsed for Taxes and Charges",
@@ -598,6 +591,7 @@
    "oldfieldname": "purchase_order",
    "oldfieldtype": "Link",
    "options": "Purchase Order",
+   "print_hide": 1,
    "read_only": 1,
    "search_index": 1
   },
@@ -613,7 +607,6 @@
    "fieldname": "include_exploded_items",
    "fieldtype": "Check",
    "label": "Include Exploded Items",
-   "print_hide": 1,
    "read_only": 1
   },
   {
@@ -622,7 +615,6 @@
   },
   {
    "default": "0",
-   "fetch_from": "item_code.is_fixed_asset",
    "fieldname": "is_fixed_asset",
    "fieldtype": "Check",
    "hidden": 1,
@@ -630,6 +622,14 @@
    "no_copy": 1,
    "print_hide": 1,
    "read_only": 1
+  },
+  {
+   "depends_on": "is_fixed_asset",
+   "fieldname": "asset",
+   "fieldtype": "Link",
+   "label": "Asset",
+   "no_copy": 1,
+   "options": "Asset"
   },
   {
    "depends_on": "is_fixed_asset",
@@ -676,7 +676,7 @@
    "fieldname": "pr_detail",
    "fieldtype": "Data",
    "hidden": 1,
-   "label": "Purchase Receipt Detail",
+   "label": "PR Detail",
    "no_copy": 1,
    "oldfieldname": "pr_detail",
    "oldfieldtype": "Data",
@@ -720,6 +720,12 @@
   },
   {
    "collapsible": 1,
+   "fieldname": "image_section",
+   "fieldtype": "Section Break",
+   "label": "Image"
+  },
+  {
+   "collapsible": 1,
    "fieldname": "accounting_dimensions_section",
    "fieldtype": "Section Break",
    "label": "Accounting Dimensions"
@@ -729,7 +735,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "collapsible": 1,
    "fieldname": "manufacture_details",
    "fieldtype": "Section Break",
    "label": "Manufacture"
@@ -747,43 +752,13 @@
   {
    "fieldname": "manufacturer_part_no",
    "fieldtype": "Data",
-   "label": "Manufacturer Part Number"
-  },
-  {
-   "depends_on": "is_fixed_asset",
-   "fetch_from": "item_code.asset_category",
-   "fieldname": "asset_category",
-   "fieldtype": "Link",
-   "label": "Asset Category",
-   "options": "Asset Category",
-   "read_only": 1
-  },
-  {
-   "fieldname": "from_warehouse",
-   "fieldtype": "Link",
-   "ignore_user_permissions": 1,
-   "label": "Supplier Warehouse",
-   "options": "Warehouse"
-  },
-  {
-   "collapsible": 1,
-   "fieldname": "col_break7",
-   "fieldtype": "Column Break"
-  },
-  {
-   "depends_on": "eval:parent.update_stock == 1",
-   "fieldname": "purchase_invoice_item",
-   "fieldtype": "Data",
-   "ignore_user_permissions": 1,
-   "label": "Purchase Invoice Item",
-   "no_copy": 1,
-   "print_hide": 1,
+   "label": "Manufacturer Part Number",
    "read_only": 1
   }
  ],
  "idx": 1,
  "istable": 1,
- "modified": "2020-08-20 11:48:01.398356",
+ "modified": "2019-06-02 06:36:17.078419",
  "modified_by": "Administrator",
  "module": "Accounts",
  "name": "Purchase Invoice Item",

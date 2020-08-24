@@ -13,7 +13,7 @@
    "fieldname": "problem",
    "fieldtype": "Long Text",
    "in_list_view": 1,
-   "label": "Review"
+   "label": "Problem"
   },
   {
    "fieldname": "sb_00",

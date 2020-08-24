@@ -88,14 +88,17 @@ def get_data():
 					"doctype": "Project",
 					"dependencies": ["Project"],
 				},
+			]
+		},
+		{
+			"label": _("Help"),
+			"icon": "fa fa-facetime-video",
+			"items": [
 				{
-					"type": "report",
-					"is_query_report": True,
-					"name": "Project Billing Summary",
-					"doctype": "Project",
-					"dependencies": ["Project"],
+					"type": "help",
+					"label": _("Managing Projects"),
+					"youtube_id": "egxIGwtoKI4"
 				},
 			]
 		},
-		
 	]

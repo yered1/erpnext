@@ -7,8 +7,6 @@ def execute():
 	if not company:
 		return
 
-	frappe.reload_doc('accounts', 'doctype', 'Tax Category')
-
 	make_custom_fields()
 
 	for doctype in ['Sales Invoice', 'Purchase Invoice']:

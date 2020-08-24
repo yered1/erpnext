@@ -10,6 +10,7 @@ def boot_session(bootinfo):
 	"""boot session - send website info if guest"""
 
 	bootinfo.custom_css = frappe.db.get_value('Style Settings', None, 'custom_css') or ''
+	bootinfo.website_settings = frappe.get_doc('Website Settings')
 
 	if frappe.session['user']!='Guest':
 		update_page_info(bootinfo)
@@ -32,7 +33,7 @@ def boot_session(bootinfo):
 				FROM `tabCompany`
 				LIMIT 1""") and 'Yes' or 'No'
 
-		bootinfo.docs += frappe.db.sql("""select name, default_currency, cost_center, default_selling_terms, default_buying_terms,
+		bootinfo.docs += frappe.db.sql("""select name, default_currency, cost_center, default_terms,
 			default_letter_head, default_bank_account, enable_perpetual_inventory, country from `tabCompany`""",
 			as_dict=1, update={"doctype":":Company"})
 

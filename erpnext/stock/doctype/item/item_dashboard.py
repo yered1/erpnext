@@ -41,7 +41,7 @@ def get_data():
 			},
 			{
 				'label': _('Manufacture'),
-				'items': ['Production Plan', 'Work Order', 'Item Manufacturer']
+				'items': ['Work Order', 'Item Manufacturer']
 			}
 		]
 	}

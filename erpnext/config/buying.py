@@ -1,20 +1,12 @@
 from __future__ import unicode_literals
-import frappe
 from frappe import _
 
 def get_data():
-	config =  [
+	return [
 		{
 			"label": _("Purchasing"),
 			"icon": "fa fa-star",
 			"items": [
-				{
-					"type": "doctype",
-					"name": "Material Request",
-					"onboard": 1,
-					"dependencies": ["Item"],
-					"description": _("Request for purchase."),
-				},
 				{
 					"type": "doctype",
 					"name": "Purchase Order",
@@ -24,9 +16,10 @@ def get_data():
 				},
 				{
 					"type": "doctype",
-					"name": "Purchase Invoice",
+					"name": "Material Request",
 					"onboard": 1,
-					"dependencies": ["Item", "Supplier"]
+					"dependencies": ["Item"],
+					"description": _("Request for purchase."),
 				},
 				{
 					"type": "doctype",
@@ -66,11 +59,6 @@ def get_data():
 				},
 				{
 					"type": "doctype",
-					"name": "Pricing Rule",
-					"description": _("Rules for applying pricing and discount.")
-				},
-				{
-					"type": "doctype",
 					"name": "Product Bundle",
 					"description": _("Bundle items at time of sale."),
 				},
@@ -86,6 +74,11 @@ def get_data():
 					"type": "doctype",
 					"name": "Promotional Scheme",
 					"description": _("Rules for applying different promotional schemes.")
+				},
+				{
+					"type": "doctype",
+					"name": "Pricing Rule",
+					"description": _("Rules for applying pricing and discount.")
 				}
 			]
 		},
@@ -153,6 +146,13 @@ def get_data():
 				{
 					"type": "report",
 					"is_query_report": True,
+					"name": "Supplier-Wise Sales Analytics",
+					"reference_doctype": "Stock Ledger Entry",
+					"onboard": 1
+				},
+				{
+					"type": "report",
+					"is_query_report": True,
 					"name": "Purchase Order Trends",
 					"reference_doctype": "Purchase Order",
 					"onboard": 1,
@@ -160,27 +160,10 @@ def get_data():
 				{
 					"type": "report",
 					"is_query_report": True,
-					"name": "Procurement Tracker",
-					"reference_doctype": "Purchase Order",
-					"onboard": 1,
-				},
-				{
-					"type": "report",
-					"is_query_report": True,
-					"name": "Requested Items To Order",
+					"name": "Requested Items To Be Ordered",
 					"reference_doctype": "Material Request",
 					"onboard": 1,
 				},
-				{
-					"type": "report",
-					"is_query_report": True,
-					"name": "Address And Contacts",
-					"label": _("Supplier Addresses And Contacts"),
-					"reference_doctype": "Address",
-					"route_options": {
-						"party_type": "Supplier"
-					}
-				}
 			]
 		},
 		{
@@ -230,35 +213,44 @@ def get_data():
 				{
 					"type": "report",
 					"is_query_report": True,
-					"name": "Supplier-Wise Sales Analytics",
-					"reference_doctype": "Stock Ledger Entry",
-					"onboard": 1
+					"name": "Material Requests for which Supplier Quotations are not created",
+					"reference_doctype": "Material Request"
 				},
 				{
 					"type": "report",
 					"is_query_report": True,
-					"name": "Material Requests for which Supplier Quotations are not created",
-					"reference_doctype": "Material Request"
+					"name": "Address And Contacts",
+					"label": "Supplier Addresses And Contacts",
+					"reference_doctype": "Address",
+					"route_options": {
+						"party_type": "Supplier"
+					}
 				}
 			]
 		},
-
-	]
-
-	regional = {
-			"label": _("Regional"),
+		{
+			"label": _("Help"),
 			"items": [
 				{
-				"type": "doctype",
-				"name": "Import Supplier Invoice",
-				"description": _("Import Italian Supplier Invoice."),
-				"onboard": 1,
-				}
+					"type": "help",
+					"label": _("Customer and Supplier"),
+					"youtube_id": "anoGi_RpQ20"
+				},
+				{
+					"type": "help",
+					"label": _("Material Request to Purchase Order"),
+					"youtube_id": "4TN9kPyfIqM"
+				},
+				{
+					"type": "help",
+					"label": _("Purchase Order to Payment"),
+					"youtube_id": "EK65tLdVUDk"
+				},
+				{
+					"type": "help",
+					"label": _("Managing Subcontracting"),
+					"youtube_id": "ThiMCC2DtKo"
+				},
 			]
-		}
-
-	countries = frappe.get_all("Company", fields="country")
-	countries = [country["country"] for country in countries]
-	if "Italy" in countries:
-		config.append(regional)
-	return config
+		},
+	]

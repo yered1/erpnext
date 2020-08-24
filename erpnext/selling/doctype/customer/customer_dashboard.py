@@ -9,14 +9,7 @@ def get_data():
 		'heatmap_message': _('This is based on transactions against this Customer. See timeline below for details'),
 		'fieldname': 'customer',
 		'non_standard_fieldnames': {
-			'Payment Entry': 'party',
-			'Quotation': 'party_name',
-			'Opportunity': 'party_name',
-			'Bank Account': 'party',
-			'Subscription': 'party'
-		},
-		'dynamic_links': {
-			'party_name': ['Customer', 'quotation_to']
+			'Payment Entry': 'party_name'
 		},
 		'transactions': [
 			{
@@ -28,8 +21,12 @@ def get_data():
 				'items': ['Sales Order', 'Delivery Note', 'Sales Invoice']
 			},
 			{
+				'label': _('Service Level Agreement'),
+				'items': ['Service Level Agreement']
+			},
+			{
 				'label': _('Payments'),
-				'items': ['Payment Entry', 'Bank Account']
+				'items': ['Payment Entry']
 			},
 			{
 				'label': _('Support'),

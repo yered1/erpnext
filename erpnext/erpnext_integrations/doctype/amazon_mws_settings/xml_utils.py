@@ -33,10 +33,7 @@ class object_dict(dict):
 
 	def __getattr__(self, item):
 
-		try:
-			d = self.__getitem__(item)
-		except KeyError:
-			return None
+		d = self.__getitem__(item)
 
 		if isinstance(d, dict) and 'value' in d and len(d) == 1:
 			return d['value']

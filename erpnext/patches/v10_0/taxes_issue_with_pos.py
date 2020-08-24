@@ -19,7 +19,7 @@ def execute():
 			doc.db_update()
 
 			delete_gle_for_voucher(doc.name)
-			doc.make_gl_entries()
+			doc.make_gl_entries(repost_future_gle=False)
 
 def delete_gle_for_voucher(voucher_no):
 	frappe.db.sql("""delete from `tabGL Entry` where voucher_no = %(voucher_no)s""",

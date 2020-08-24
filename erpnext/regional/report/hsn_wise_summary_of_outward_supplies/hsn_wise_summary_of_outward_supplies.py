@@ -7,8 +7,6 @@ from frappe import _
 from frappe.utils import flt
 from frappe.model.meta import get_field_precision
 from frappe.utils.xlsxutils import handle_html
-from six import iteritems
-import json
 
 def execute(filters=None):
 	return _execute(filters)
@@ -23,24 +21,21 @@ def _execute(filters=None):
 		itemised_tax, tax_columns = get_tax_accounts(item_list, columns, company_currency)
 
 	data = []
-	added_item = []
 	for d in item_list:
-		if (d.parent, d.item_code) not in added_item:
-			row = [d.gst_hsn_code, d.description, d.stock_uom, d.stock_qty]
-			total_tax = 0
-			for tax in tax_columns:
-				item_tax = itemised_tax.get((d.parent, d.item_code), {}).get(tax, {})
-				total_tax += flt(item_tax.get("tax_amount", 0))
+		row = [d.gst_hsn_code, d.description, d.stock_uom, d.stock_qty]
+		total_tax = 0
+		for tax in tax_columns:
+			item_tax = itemised_tax.get(d.name, {}).get(tax, {})
+			total_tax += flt(item_tax.get("tax_amount"))
 
-			row += [d.base_net_amount + total_tax]
-			row += [d.base_net_amount]
+		row += [d.base_net_amount + total_tax]
+		row += [d.base_net_amount]
 
-			for tax in tax_columns:
-				item_tax = itemised_tax.get((d.parent, d.item_code), {}).get(tax, {})
-				row += [item_tax.get("tax_amount", 0)]
+		for tax in tax_columns:
+			item_tax = itemised_tax.get(d.name, {}).get(tax, {})
+			row += [item_tax.get("tax_amount", 0)]
 
-			data.append(row)
-			added_item.append((d.parent, d.item_code))
+		data.append(row)
 	if data:
 		data = get_merged_data(columns, data) # merge same hsn code data
 	return columns, data
@@ -93,9 +88,7 @@ def get_conditions(filters):
 
 	for opts in (("company", " and company=%(company)s"),
 		("gst_hsn_code", " and gst_hsn_code=%(gst_hsn_code)s"),
-		("company_gstin", " and company_gstin=%(company_gstin)s"),
-		("from_date", " and posting_date >= %(from_date)s"),
-		("to_date", "and posting_date <= %(to_date)s")):
+		("company_gstin", " and company_gstin=%(company_gstin)s")):
 			if filters.get(opts[0]):
 				conditions += opts[1]
 
@@ -108,7 +101,7 @@ def get_items(filters):
 		match_conditions = " and {0} ".format(match_conditions)
 
 
-	items = frappe.db.sql("""
+	return frappe.db.sql("""
 		select
 			`tabSales Invoice Item`.name, `tabSales Invoice Item`.base_price_list_rate,
 			`tabSales Invoice Item`.gst_hsn_code, `tabSales Invoice Item`.stock_qty,
@@ -123,9 +116,10 @@ def get_items(filters):
 
 		""" % (conditions, match_conditions), filters, as_dict=1)
 
-	return items
 
-def get_tax_accounts(item_list, columns, company_currency, doctype="Sales Invoice", tax_doctype="Sales Taxes and Charges"):
+def get_tax_accounts(item_list, columns, company_currency,
+		doctype="Sales Invoice", tax_doctype="Sales Taxes and Charges"):
+	import json
 	item_row_map = {}
 	tax_columns = []
 	invoice_item_row = {}
@@ -175,7 +169,7 @@ def get_tax_accounts(item_list, columns, company_currency, doctype="Sales Invoic
 					for d in item_row_map.get(parent, {}).get(item_code, []):
 						item_tax_amount = tax_amount
 						if item_tax_amount:
-							itemised_tax.setdefault((parent, item_code), {})[description] = frappe._dict({
+							itemised_tax.setdefault(d.name, {})[description] = frappe._dict({
 								"tax_amount": flt(item_tax_amount, tax_amount_precision)
 							})
 			except ValueError:
@@ -183,32 +177,42 @@ def get_tax_accounts(item_list, columns, company_currency, doctype="Sales Invoic
 
 	tax_columns.sort()
 	for desc in tax_columns:
-		columns.append({
-			"label": desc,
-			"fieldname": frappe.scrub(desc),
-			"fieldtype": "Float",
-			"width": 110
-		})
+		columns.append(desc + " Amount:Currency/currency:160")
 
+	# columns += ["Total Amount:Currency/currency:110"]
 	return itemised_tax, tax_columns
 
 def get_merged_data(columns, data):
 	merged_hsn_dict = {} # to group same hsn under one key and perform row addition
-	result = []
+	add_column_index = [] # store index of columns that needs to be added
+	tax_col = len(get_columns())
+	fields_to_merge = ["stock_qty", "total_amount", "taxable_amount"] # columns for which index needs to be found
+
+	for i,d in enumerate(columns):
+		# check if fieldname in to_merge list and ignore tax-columns
+		if i < tax_col and d["fieldname"] in fields_to_merge:
+			add_column_index.append(i)
 
 	for row in data:
-		merged_hsn_dict.setdefault(row[0], {})
-		for i, d in enumerate(columns):
-			if d['fieldtype'] not in ('Int', 'Float', 'Currency'):
-				merged_hsn_dict[row[0]][d['fieldname']] = row[i]
-			else:
-				if merged_hsn_dict.get(row[0], {}).get(d['fieldname'], ''):
-					merged_hsn_dict[row[0]][d['fieldname']] += row[i]
-				else:
-					merged_hsn_dict[row[0]][d['fieldname']] = row[i]
+		if row[0] in merged_hsn_dict:
+			to_add_row = merged_hsn_dict.get(row[0])
 
-	for key, value in iteritems(merged_hsn_dict):
-		result.append(value)
+			# add columns from the add_column_index table
+			for k in add_column_index:
+				to_add_row[k] += row[k]
 
-	return result
+			# add tax columns
+			for k in range(len(columns)):
+				if tax_col <= k < len(columns):
+					to_add_row[k] += row[k]
+
+			# update hsn dict with the newly added data
+			merged_hsn_dict[row[0]] = to_add_row
+		else:
+			merged_hsn_dict[row[0]] = row
+
+	# extract data rows to be displayed in report
+	data = [merged_hsn_dict[d] for d in merged_hsn_dict]
+
+	return data
 

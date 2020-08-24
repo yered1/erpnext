@@ -1,5 +1,4 @@
 {
- "actions": [],
  "allow_guest_to_view": 1,
  "allow_import": 1,
  "allow_rename": 1,
@@ -28,11 +27,9 @@
   "valuation_rate",
   "standard_rate",
   "is_fixed_asset",
-  "auto_create_assets",
   "asset_category",
   "asset_naming_series",
-  "over_delivery_receipt_allowance",
-  "over_billing_allowance",
+  "tolerance",
   "image",
   "section_break_11",
   "brand",
@@ -79,6 +76,7 @@
   "is_customer_provided_item",
   "customer",
   "supplier_details",
+  "manufacturers",
   "delivered_by_supplier",
   "column_break2",
   "supplier_items",
@@ -114,8 +112,6 @@
   "is_sub_contracted_item",
   "column_break_74",
   "customer_code",
-  "default_item_manufacturer",
-  "default_manufacturer_part_no",
   "website_section",
   "show_in_website",
   "show_variant_in_website",
@@ -123,7 +119,6 @@
   "weightage",
   "slideshow",
   "website_image",
-  "website_image_alt",
   "thumbnail",
   "cb72",
   "website_warehouse",
@@ -163,7 +158,6 @@
    "label": "Item Code",
    "oldfieldname": "item_code",
    "oldfieldtype": "Data",
-   "reqd": 1,
    "unique": 1
   },
   {
@@ -291,6 +285,14 @@
    "label": "Asset Naming Series"
   },
   {
+   "depends_on": "eval:!doc.__islocal",
+   "fieldname": "tolerance",
+   "fieldtype": "Float",
+   "label": "Allow over delivery or receipt upto this percent",
+   "oldfieldname": "tolerance",
+   "oldfieldtype": "Currency"
+  },
+  {
    "fieldname": "image",
    "fieldtype": "Attach Image",
    "hidden": 1,
@@ -346,8 +348,7 @@
   {
    "fieldname": "shelf_life_in_days",
    "fieldtype": "Int",
-   "label": "Shelf Life In Days",
-   "mandatory_depends_on": "eval:doc.has_batch_no && doc.has_expiry_date"
+   "label": "Shelf Life In Days"
   },
   {
    "default": "2099-12-31",
@@ -501,7 +502,7 @@
    "oldfieldtype": "Select"
   },
   {
-   "depends_on": "has_serial_no",
+   "depends_on": "eval:doc.is_stock_item || doc.is_fixed_asset",
    "description": "Example: ABCD.#####\nIf series is set and Serial No is not mentioned in transactions, then automatic serial number will be created based on this series. If you always want to explicitly mention Serial Nos for this item. leave this blank.",
    "fieldname": "serial_no_series",
    "fieldtype": "Data",
@@ -575,7 +576,6 @@
   {
    "default": "0.00",
    "depends_on": "is_stock_item",
-   "description": "Minimum quantity should be as per Stock UOM",
    "fieldname": "min_order_qty",
    "fieldtype": "Float",
    "label": "Minimum Order Qty",
@@ -912,7 +912,7 @@
    "description": "Item Image (if not slideshow)",
    "fieldname": "website_image",
    "fieldtype": "Attach",
-   "label": "Website Image"
+   "label": "Image"
   },
   {
    "fieldname": "thumbnail",
@@ -989,7 +989,6 @@
    "read_only": 1
   },
   {
-   "collapsible": 1,
    "depends_on": "eval:(!doc.is_item_from_hub)",
    "fieldname": "hub_publishing_sb",
    "fieldtype": "Section Break",
@@ -1024,52 +1023,18 @@
    "read_only": 1
   },
   {
-   "depends_on": "eval:!doc.__islocal",
-   "fieldname": "over_delivery_receipt_allowance",
-   "fieldtype": "Float",
-   "label": "Over Delivery/Receipt Allowance (%)",
-   "oldfieldname": "tolerance",
-   "oldfieldtype": "Currency"
-  },
-  {
-   "depends_on": "eval:!doc.__islocal",
-   "fieldname": "over_billing_allowance",
-   "fieldtype": "Float",
-   "label": "Over Billing Allowance (%)"
-  },
-  {
-   "default": "0",
-   "depends_on": "is_fixed_asset",
-   "fieldname": "auto_create_assets",
-   "fieldtype": "Check",
-   "label": "Auto Create Assets on Purchase"
-  },
-  {
-   "fieldname": "default_item_manufacturer",
-   "fieldtype": "Data",
-   "label": "Default Item Manufacturer",
-   "read_only": 1
-  },
-  {
-   "fieldname": "default_manufacturer_part_no",
-   "fieldtype": "Data",
-   "label": "Default Manufacturer Part No",
-   "read_only": 1
-  },
-  {
-   "fieldname": "website_image_alt",
-   "fieldtype": "Data",
-   "label": "Image Description"
+   "fieldname": "manufacturers",
+   "fieldtype": "Table",
+   "label": "Manufacturers",
+   "options": "Item Manufacturer"
   }
  ],
  "has_web_view": 1,
  "icon": "fa fa-tag",
  "idx": 2,
  "image_field": "image",
- "index_web_pages_for_search": 1,
- "links": [],
  "max_attachments": 1,
- "modified": "2020-08-07 14:24:58.384992",
+ "modified": "2019-06-02 04:45:59.911507",
  "modified_by": "Administrator",
  "module": "Stock",
  "name": "Item",

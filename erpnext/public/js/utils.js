@@ -60,35 +60,19 @@ $.extend(erpnext, {
 
 		var me = this;
 		$btn.on("click", function() {
-			let callback = '';
-			let on_close = '';
-
-			frappe.model.get_value('Item', {'name':grid_row.doc.item_code}, 'has_serial_no',
-				(data) => {
-					if(data) {
-						grid_row.doc.has_serial_no = data.has_serial_no;
-						me.show_serial_batch_selector(grid_row.frm, grid_row.doc,
-							callback, on_close, true);
-					}
-				}
-			);
+			me.show_serial_batch_selector(grid_row.frm, grid_row.doc);
 		});
 	},
 
-	route_to_adjustment_jv: (args) => {
-		frappe.model.with_doctype('Journal Entry', () => {
-			// route to adjustment Journal Entry to handle Account Balance and Stock Value mismatch
-			let journal_entry = frappe.model.get_new_doc('Journal Entry');
-
-			args.accounts.forEach((je_account) => {
-				let child_row = frappe.model.add_child(journal_entry, "accounts");
-				child_row.account = je_account.account;
-				child_row.debit_in_account_currency = je_account.debit_in_account_currency;
-				child_row.credit_in_account_currency = je_account.credit_in_account_currency;
-				child_row.party_type = "" ;
-			});
-			frappe.set_route('Form','Journal Entry', journal_entry.name);
+	get_dimension_filters: async function() {
+		let dimensions = await frappe.db.get_list('Accounting Dimension', {
+			fields: ['label', 'fieldname', 'document_type'],
+			filters: {
+				disabled: 0
+			}
 		});
+
+		return dimensions;
 	}
 });
 
@@ -191,26 +175,9 @@ $.extend(erpnext.utils, {
 		})
 	},
 
-	add_dimensions: function(report_name, index) {
-		let filters = frappe.query_reports[report_name].filters;
-
-		erpnext.dimension_filters.forEach((dimension) => {
-			let found = filters.some(el => el.fieldname === dimension['fieldname']);
-
-			if (!found) {
-				filters.splice(index, 0 ,{
-					"fieldname": dimension["fieldname"],
-					"label": __(dimension["label"]),
-					"fieldtype": "Link",
-					"options": dimension["document_type"]
-				});
-			}
-		});
-	},
-
 	make_subscription: function(doctype, docname) {
 		frappe.call({
-			method: "frappe.automation.doctype.auto_repeat.auto_repeat.make_auto_repeat",
+			method: "frappe.desk.doctype.auto_repeat.auto_repeat.make_auto_repeat",
 			args: {
 				doctype: doctype,
 				docname: docname
@@ -295,16 +262,6 @@ $.extend(erpnext.utils, {
 		}
 		refresh_field(table_fieldname);
 	},
-
-	create_new_doc: function (doctype, update_fields) {
-		frappe.model.with_doctype(doctype, function() {
-			var new_doc = frappe.model.get_new_doc(doctype);
-			for (let [key, value] of Object.entries(update_fields)) {
-				new_doc[key] = value;
-			}
-			frappe.ui.form.make_quick_entry(doctype, null, null, new_doc);
-		});
-	}
 
 });
 
@@ -453,66 +410,45 @@ erpnext.utils.update_child_items = function(opts) {
 	const cannot_add_row = (typeof opts.cannot_add_row === 'undefined') ? true : opts.cannot_add_row;
 	const child_docname = (typeof opts.cannot_add_row === 'undefined') ? "items" : opts.child_docname;
 	this.data = [];
-	const fields = [{
-		fieldtype:'Data',
-		fieldname:"docname",
-		read_only: 1,
-		hidden: 1,
-	}, {
-		fieldtype:'Link',
-		fieldname:"item_code",
-		options: 'Item',
-		in_list_view: 1,
-		read_only: 0,
-		disabled: 0,
-		label: __('Item Code')
-	}, {
-		fieldtype:'Float',
-		fieldname:"qty",
-		default: 0,
-		read_only: 0,
-		in_list_view: 1,
-		label: __('Qty')
-	}, {
-		fieldtype:'Currency',
-		fieldname:"rate",
-		default: 0,
-		read_only: 0,
-		in_list_view: 1,
-		label: __('Rate')
-	}];
-
-	if (frm.doc.doctype == 'Sales Order' || frm.doc.doctype == 'Purchase Order' ) {
-		fields.splice(2, 0, {
-			fieldtype: 'Date',
-			fieldname: frm.doc.doctype == 'Sales Order' ? "delivery_date" : "schedule_date",
-			in_list_view: 1,
-			label: frm.doc.doctype == 'Sales Order' ? __("Delivery Date") : __("Reqd by date"),
-			reqd: 1
-		})
-		fields.splice(3, 0, {
-			fieldtype: 'Float',
-			fieldname: "conversion_factor",
-			in_list_view: 1,
-			label: __("Conversion Factor")
-		})
-	}
-
 	const dialog = new frappe.ui.Dialog({
 		title: __("Update Items"),
 		fields: [
+			{fieldtype:'Section Break', label: __('Items')},
 			{
 				fieldname: "trans_items",
 				fieldtype: "Table",
-				label: "Items",
 				cannot_add_rows: cannot_add_row,
 				in_place_edit: true,
-				reqd: 1,
 				data: this.data,
 				get_data: () => {
 					return this.data;
 				},
-				fields: fields
+				fields: [{
+					fieldtype:'Data',
+					fieldname:"docname",
+					hidden: 0,
+				}, {
+					fieldtype:'Link',
+					fieldname:"item_code",
+					options: 'Item',
+					in_list_view: 1,
+					read_only: 1,
+					label: __('Item Code')
+				}, {
+					fieldtype:'Float',
+					fieldname:"qty",
+					default: 0,
+					read_only: 0,
+					in_list_view: 1,
+					label: __('Qty')
+				}, {
+					fieldtype:'Currency',
+					fieldname:"rate",
+					default: 0,
+					read_only: 0,
+					in_list_view: 1,
+					label: __('Rate')
+				}]
 			},
 		],
 		primary_action: function() {
@@ -539,11 +475,7 @@ erpnext.utils.update_child_items = function(opts) {
 	frm.doc[opts.child_docname].forEach(d => {
 		dialog.fields_dict.trans_items.df.data.push({
 			"docname": d.name,
-			"name": d.name,
 			"item_code": d.item_code,
-			"delivery_date": d.delivery_date,
-			"schedule_date": d.schedule_date,
-			"conversion_factor": d.conversion_factor,
 			"qty": d.qty,
 			"rate": d.rate,
 		});
@@ -554,18 +486,9 @@ erpnext.utils.update_child_items = function(opts) {
 }
 
 erpnext.utils.map_current_doc = function(opts) {
-	let query_args = {};
-	if (opts.get_query_filters) {
-		query_args.filters = opts.get_query_filters;
-	}
-
-	if (opts.get_query_method) {
-		query_args.query = opts.get_query_method;
-	}
-
-	if (query_args.filters || query_args.query) {
-		opts.get_query = () => {
-			return query_args;
+	if(opts.get_query_filters) {
+		opts.get_query = function() {
+			return {filters: opts.get_query_filters};
 		}
 	}
 	var _map = function() {
@@ -631,7 +554,7 @@ erpnext.utils.map_current_doc = function(opts) {
 				"method": opts.method,
 				"source_names": opts.source_name,
 				"target_doc": cur_frm.doc,
-				"args": opts.args
+				'args': opts.args
 			},
 			callback: function(r) {
 				if(!r.exc) {

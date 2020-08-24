@@ -3,18 +3,6 @@
 
 frappe.ui.form.on("Customer", {
 	setup: function(frm) {
-
-		frm.make_methods = {
-			'Quotation': () => frappe.model.open_mapped_doc({
-				method: "erpnext.selling.doctype.customer.customer.make_quotation",
-				frm: cur_frm
-			}),
-			'Opportunity': () => frappe.model.open_mapped_doc({
-				method: "erpnext.selling.doctype.customer.customer.make_opportunity",
-				frm: cur_frm
-			})
-		}
-
 		frm.add_fetch('lead_name', 'company_name', 'customer_name');
 		frm.add_fetch('default_sales_partner','commission_rate','default_commission_rate');
 		frm.set_query('customer_group', {'is_group': 0});
@@ -49,20 +37,12 @@ frappe.ui.form.on("Customer", {
 		})
 		frm.set_query('customer_primary_address', function(doc) {
 			return {
+				query: "erpnext.selling.doctype.customer.customer.get_customer_primary_address",
 				filters: {
-					'link_doctype': 'Customer',
-					'link_name': doc.name
+					'customer': doc.name
 				}
 			}
 		})
-
-		frm.set_query('default_bank_account', function() {
-			return {
-				filters: {
-					'is_company_account': 1
-				}
-			}
-		});
 	},
 	customer_primary_address: function(frm){
 		if(frm.doc.customer_primary_address){
@@ -111,7 +91,7 @@ frappe.ui.form.on("Customer", {
 		}
 
 		frappe.dynamic_link = {doc: frm.doc, fieldname: 'name', doctype: 'Customer'}
-		frm.toggle_display(['address_html','contact_html'], !frm.doc.__islocal);
+		frm.toggle_display(['address_html','contact_html','primary_address_and_contact_detail'], !frm.doc.__islocal);
 
 		if(!frm.doc.__islocal) {
 			frappe.contacts.render_address_and_contact(frm);

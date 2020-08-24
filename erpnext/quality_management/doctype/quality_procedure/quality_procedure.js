@@ -2,13 +2,4 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on('Quality Procedure', {
-	refresh: function(frm) {
-		frm.set_query("procedure","processes", (frm) =>{
-			return {
-				filters: {
-					name: ["not in", [frm.parent_quality_procedure, frm.name]]
-				}
-			};
-		});
-	}
 });

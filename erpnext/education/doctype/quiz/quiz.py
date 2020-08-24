@@ -4,14 +4,12 @@
 
 from __future__ import unicode_literals
 import frappe
-import json
-from frappe import _
 from frappe.model.document import Document
 
 class Quiz(Document):
 	def validate(self):
 		if self.passing_score > 100:
-			frappe.throw(_("Passing Score value should be between 0 and 100"))
+			frappe.throw("Passing Score value should be between 0 and 100")
 
 	def allowed_attempt(self, enrollment, quiz_name):
 		if self.max_attempts ==  0:
@@ -19,7 +17,7 @@ class Quiz(Document):
 
 		try:
 			if len(frappe.get_all("Quiz Activity", {'enrollment': enrollment.name, 'quiz': quiz_name})) >= self.max_attempts:
-				frappe.msgprint(_("Maximum attempts for this quiz reached!"))
+				frappe.msgprint("Maximum attempts for this quiz reached!")
 				return False
 			else:
 				return True
@@ -58,14 +56,5 @@ def compare_list_elementwise(*args):
 		else:
 			return False
 	except TypeError:
-		frappe.throw(_("Compare List function takes on list arguments"))
+		frappe.throw("Compare List function takes on list arguments")
 
-@frappe.whitelist()
-def get_topics_without_quiz(quiz):
-	data = []
-	for entry in frappe.db.get_all('Topic'):
-		topic = frappe.get_doc('Topic', entry.name)
-		topic_contents = [tc.content for tc in topic.topic_content]
-		if not topic_contents or quiz not in topic_contents:
-			data.append(topic.name)
-	return data

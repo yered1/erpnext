@@ -15,7 +15,7 @@ class TestProcurementTracker(unittest.TestCase):
 	def test_result_for_procurement_tracker(self):
 		filters = {
 			'company': '_Test Procurement Company',
-			'cost_center': 'Main - _TPC'
+			'cost_center': '_Test Cost Center - _TC'
 		}
 		expected_data = self.generate_expected_data()
 		report = execute(filters)
@@ -30,30 +30,27 @@ class TestProcurementTracker(unittest.TestCase):
 				company_name="_Test Procurement Company",
 				abbr="_TPC",
 				default_currency="INR",
-				country="Pakistan"
+				country="India"
 				)).insert()
 		warehouse = create_warehouse("_Test Procurement Warehouse", company="_Test Procurement Company")
-		mr = make_material_request(company="_Test Procurement Company", warehouse=warehouse, cost_center="Main - _TPC")
+		mr = make_material_request(company="_Test Procurement Company", warehouse=warehouse)
 		po = make_purchase_order(mr.name)
 		po.supplier = "_Test Supplier"
-		po.get("items")[0].cost_center = "Main - _TPC"
+		po.get("items")[0].cost_center = "_Test Cost Center - _TC"
 		po.submit()
 		pr = make_purchase_receipt(po.name)
-		pr.get("items")[0].cost_center = "Main - _TPC"
 		pr.submit()
 		frappe.db.commit()
 		date_obj = datetime.date(datetime.now())
 
-		po.load_from_db()
-
 		expected_data = {
 			"material_request_date": date_obj,
-			"cost_center": "Main - _TPC",
+			"cost_center": "_Test Cost Center - _TC",
 			"project": None,
 			"requesting_site": "_Test Procurement Warehouse - _TPC",
 			"requestor": "Administrator",
 			"material_request_no": mr.name,
-			"item_code": '_Test Item',
+			"description": '_Test Item 1',
 			"quantity": 10.0,
 			"unit_of_measurement": "_Test UOM",
 			"status": "To Bill",
@@ -61,11 +58,10 @@ class TestProcurementTracker(unittest.TestCase):
 			"purchase_order": po.name,
 			"supplier": "_Test Supplier",
 			"estimated_cost": 0.0,
-			"actual_cost": 0.0,
-			"purchase_order_amt": po.net_total,
-			"purchase_order_amt_in_company_currency": po.base_net_total,
+			"actual_cost": None,
+			"purchase_order_amt": 5000.0,
+			"purchase_order_amt_in_company_currency": 300000.0,
 			"expected_delivery_date": date_obj,
 			"actual_delivery_date": date_obj
 		}
-
 		return expected_data

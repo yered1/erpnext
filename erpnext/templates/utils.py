@@ -28,7 +28,7 @@ def send_message(subject="Website Query", message="", sender="", status="Open"):
 
 	opportunity = frappe.get_doc(dict(
 		doctype ='Opportunity',
-		opportunity_from = 'Customer' if customer else 'Lead',
+		enquiry_from = 'Customer' if customer else 'Lead',
 		status = 'Open',
 		title = subject,
 		contact_email = sender,
@@ -36,11 +36,11 @@ def send_message(subject="Website Query", message="", sender="", status="Open"):
 	))
 
 	if customer:
-		opportunity.party_name = customer[0][0]
+		opportunity.customer = customer[0][0]
 	elif lead:
-		opportunity.party_name = lead
+		opportunity.lead = lead
 	else:
-		opportunity.party_name = new_lead.name
+		opportunity.lead = new_lead.name
 
 	opportunity.insert(ignore_permissions=True)
 

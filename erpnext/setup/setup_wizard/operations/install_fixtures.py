@@ -8,10 +8,7 @@ import frappe, os, json
 from frappe import _
 from frappe.desk.page.setup_wizard.setup_wizard import make_records
 from frappe.utils import cstr, getdate
-from frappe.desk.doctype.global_search_settings.global_search_settings import update_global_search_doctypes
-
 from erpnext.accounts.doctype.account.account import RootNotEditable
-from erpnext.regional.address_template.setup import set_up_address_templates
 
 default_lead_sources = ["Existing Customer", "Reference", "Advertisement",
 	"Cold Calling", "Exhibition", "Supplier Reference", "Mass Mailing",
@@ -32,7 +29,7 @@ def install(country=None):
 		{ 'doctype': 'Domain', 'domain': 'Agriculture'},
 		{ 'doctype': 'Domain', 'domain': 'Non Profit'},
 
-		# ensure at least an empty Address Template exists for this Country
+		# address template
 		{'doctype':"Address Template", "country": country},
 
 		# item group
@@ -50,7 +47,7 @@ def install(country=None):
 			'is_group': 0, 'parent_item_group': _('All Item Groups') },
 
 		# salary component
-		{'doctype': 'Salary Component', 'salary_component': _('Income Tax'), 'description': _('Income Tax'), 'type': 'Deduction', 'is_income_tax_component': 1},
+		{'doctype': 'Salary Component', 'salary_component': _('Income Tax'), 'description': _('Income Tax'), 'type': 'Deduction'},
 		{'doctype': 'Salary Component', 'salary_component': _('Basic'), 'description': _('Basic'), 'type': 'Earning'},
 		{'doctype': 'Salary Component', 'salary_component': _('Arrear'), 'description': _('Arrear'), 'type': 'Earning'},
 		{'doctype': 'Salary Component', 'salary_component': _('Leave Encashment'), 'description': _('Leave Encashment'), 'type': 'Earning'},
@@ -67,7 +64,7 @@ def install(country=None):
 		{'doctype': 'Leave Type', 'leave_type_name': _('Casual Leave'), 'name': _('Casual Leave'),
 			'allow_encashment': 1, 'is_carry_forward': 1, 'max_continuous_days_allowed': '3', 'include_holiday': 1},
 		{'doctype': 'Leave Type', 'leave_type_name': _('Compensatory Off'), 'name': _('Compensatory Off'),
-			'allow_encashment': 0, 'is_carry_forward': 0, 'include_holiday': 1, 'is_compensatory':1 },
+			'allow_encashment': 0, 'is_carry_forward': 0, 'include_holiday': 1},
 		{'doctype': 'Leave Type', 'leave_type_name': _('Sick Leave'), 'name': _('Sick Leave'),
 			'allow_encashment': 0, 'is_carry_forward': 0, 'include_holiday': 1},
 		{'doctype': 'Leave Type', 'leave_type_name': _('Privilege Leave'), 'name': _('Privilege Leave'),
@@ -95,6 +92,8 @@ def install(country=None):
 		{'doctype': 'Stock Entry Type', 'name': 'Send to Subcontractor', 'purpose': 'Send to Subcontractor'},
 		{'doctype': 'Stock Entry Type', 'name': 'Material Transfer for Manufacture', 'purpose': 'Material Transfer for Manufacture'},
 		{'doctype': 'Stock Entry Type', 'name': 'Material Consumption for Manufacture', 'purpose': 'Material Consumption for Manufacture'},
+		{'doctype': 'Stock Entry Type', 'name': 'Send to Warehouse', 'purpose': 'Send to Warehouse'},
+		{'doctype': 'Stock Entry Type', 'name': 'Receive at Warehouse', 'purpose': 'Receive at Warehouse'},
 
 		# Designation
 		{'doctype': 'Designation', 'designation_name': _('CEO')},
@@ -174,11 +173,6 @@ def install(country=None):
 			{"attribute_value": _("White"), "abbr": "WHI"}
 		]},
 
-		# Issue Priority
-		{'doctype': 'Issue Priority', 'name': _('Low')},
-		{'doctype': 'Issue Priority', 'name': _('Medium')},
-		{'doctype': 'Issue Priority', 'name': _('High')},
-
 		#Job Applicant Source
 		{'doctype': 'Job Applicant Source', 'source_name': _('Website Listing')},
 		{'doctype': 'Job Applicant Source', 'source_name': _('Walk In')},
@@ -242,10 +236,7 @@ def install(country=None):
 		{"doctype": "Sales Stage", "stage_name": _("Identifying Decision Makers")},
 		{"doctype": "Sales Stage", "stage_name": _("Perception Analysis")},
 		{"doctype": "Sales Stage", "stage_name": _("Proposal/Price Quote")},
-		{"doctype": "Sales Stage", "stage_name": _("Negotiation/Review")},
-
-		# Warehouse Type
-		{'doctype': 'Warehouse Type', 'name': 'Transit'},
+		{"doctype": "Sales Stage", "stage_name": _("Negotiation/Review")}
 	]
 
 	from erpnext.setup.setup_wizard.data.industry_type import get_industry_types
@@ -272,12 +263,11 @@ def install(country=None):
 
 	# Records for the Supplier Scorecard
 	from erpnext.buying.doctype.supplier_scorecard.supplier_scorecard import make_default_records
-
 	make_default_records()
+
 	make_records(records)
-	set_up_address_templates(default_country=country)
+
 	set_more_defaults()
-	update_global_search_doctypes()
 
 	# path = frappe.get_app_path('erpnext', 'regional', frappe.scrub(country))
 	# if os.path.exists(path.encode("utf-8")):
@@ -337,14 +327,13 @@ def add_uom_data():
 				"category_name": _(d.get("category"))
 			}).insert(ignore_permissions=True)
 
-		if not frappe.db.exists("UOM Conversion Factor", {"from_uom": _(d.get("from_uom")), "to_uom": _(d.get("to_uom"))}):
-			uom_conversion = frappe.get_doc({
-				"doctype": "UOM Conversion Factor",
-				"category": _(d.get("category")),
-				"from_uom": _(d.get("from_uom")),
-				"to_uom": _(d.get("to_uom")),
-				"value": d.get("value")
-			}).insert(ignore_permissions=True)
+		uom_conversion = frappe.get_doc({
+			"doctype": "UOM Conversion Factor",
+			"category": _(d.get("category")),
+			"from_uom": _(d.get("from_uom")),
+			"to_uom": _(d.get("to_uom")),
+			"value": d.get("value")
+		}).insert(ignore_permissions=True)
 
 def add_market_segments():
 	records = [
@@ -481,6 +470,7 @@ def install_defaults(args=None):
 
 				frappe.db.set_value("Company", args.company_name, "default_bank_account", bank_account.name, update_modified=False)
 
+				return doc
 			except RootNotEditable:
 				frappe.throw(_("Bank account cannot be named as {0}").format(args.bank_account))
 			except frappe.DuplicateEntryError:

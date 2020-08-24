@@ -3,8 +3,8 @@ frappe.provide("erpnext.financial_statements");
 erpnext.financial_statements = {
 	"filters": get_filters(),
 	"formatter": function(value, row, column, data, default_formatter) {
-		if (data && column.fieldname=="account") {
-			value = data.account_name || value;
+		if (column.fieldname=="account") {
+			value = data.account_name;
 
 			column.link_onclick =
 				"erpnext.financial_statements.open_general_ledger(" + JSON.stringify(data) + ")";
@@ -13,7 +13,7 @@ erpnext.financial_statements = {
 
 		value = default_formatter(value, row, column, data);
 
-		if (data && !data.parent_account) {
+		if (!data.parent_account) {
 			value = $(`<span>${value}</span>`);
 
 			var $value = $(value).css("font-weight", "bold");
@@ -47,16 +47,6 @@ erpnext.financial_statements = {
 		// dropdown for links to other financial statements
 		erpnext.financial_statements.filters = get_filters()
 
-		let fiscal_year = frappe.defaults.get_user_default("fiscal_year")
-
-		frappe.model.with_doc("Fiscal Year", fiscal_year, function(r) {
-			var fy = frappe.model.get_doc("Fiscal Year", fiscal_year);
-			frappe.query_report.set_filter_value({
-				period_start_date: fy.year_start_date,
-				period_end_date: fy.year_end_date
-			});
-		});
-
 		report.page.add_inner_button(__("Balance Sheet"), function() {
 			var filters = report.get_values();
 			frappe.set_route('query-report', 'Balance Sheet', {company: filters.company});
@@ -72,7 +62,7 @@ erpnext.financial_statements = {
 	}
 };
 
-function get_filters() {
+function get_filters(){
 	let filters = [
 		{
 			"fieldname":"company",
@@ -87,37 +77,6 @@ function get_filters() {
 			"label": __("Finance Book"),
 			"fieldtype": "Link",
 			"options": "Finance Book"
-		},
-		{
-			"fieldname":"filter_based_on",
-			"label": __("Filter Based On"),
-			"fieldtype": "Select",
-			"options": ["Fiscal Year", "Date Range"],
-			"default": ["Fiscal Year"],
-			"reqd": 1,
-			on_change: function() {
-				let filter_based_on = frappe.query_report.get_filter_value('filter_based_on');
-				frappe.query_report.toggle_filter_display('from_fiscal_year', filter_based_on === 'Date Range');
-				frappe.query_report.toggle_filter_display('to_fiscal_year', filter_based_on === 'Date Range');
-				frappe.query_report.toggle_filter_display('period_start_date', filter_based_on === 'Fiscal Year');
-				frappe.query_report.toggle_filter_display('period_end_date', filter_based_on === 'Fiscal Year');
-
-				frappe.query_report.refresh();
-			}
-		},
-		{
-			"fieldname":"period_start_date",
-			"label": __("Start Date"),
-			"fieldtype": "Date",
-			"hidden": 1,
-			"reqd": 1
-		},
-		{
-			"fieldname":"period_end_date",
-			"label": __("End Date"),
-			"fieldtype": "Date",
-			"hidden": 1,
-			"reqd": 1
 		},
 		{
 			"fieldname":"from_fiscal_year",
@@ -159,16 +118,50 @@ function get_filters() {
 			"options": erpnext.get_presentation_currency_list()
 		},
 		{
-			"fieldname": "cost_center",
+			"fieldname":"cost_center",
 			"label": __("Cost Center"),
-			"fieldtype": "MultiSelectList",
-			get_data: function(txt) {
-				return frappe.db.get_link_options('Cost Center', txt, {
-					company: frappe.query_report.get_filter_value("company")
+			"fieldtype": "MultiSelect",
+			get_data: function() {
+				var cost_centers = frappe.query_report.get_filter_value("cost_center") || "";
+
+				const values = cost_centers.split(/\s*,\s*/).filter(d => d);
+				const txt = cost_centers.match(/[^,\s*]*$/)[0] || '';
+				let data = [];
+
+				frappe.call({
+					type: "GET",
+					method:'frappe.desk.search.search_link',
+					async: false,
+					no_spinner: true,
+					args: {
+						doctype: "Cost Center",
+						txt: txt,
+						filters: {
+							"company": frappe.query_report.get_filter_value("company"),
+							"name": ["not in", values]
+						}
+					},
+					callback: function(r) {
+						data = r.results;
+					}
 				});
+				return data;
 			}
 		}
 	]
+
+	let dimension_filters = erpnext.get_dimension_filters();
+
+	dimension_filters.then((dimensions) => {
+		dimensions.forEach((dimension) => {
+			filters.push({
+				"fieldname": dimension["fieldname"],
+				"label": __(dimension["label"]),
+				"fieldtype": "Link",
+				"options": dimension["document_type"]
+			});
+		});
+	});
 
 	return filters;
 }

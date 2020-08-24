@@ -65,8 +65,8 @@ def work(domain="Manufacturing"):
 def make_opportunity(domain):
 	b = frappe.get_doc({
 		"doctype": "Opportunity",
-		"opportunity_from": "Customer",
-		"party_name": frappe.get_value("Customer", get_random("Customer"), 'name'),
+		"enquiry_from": "Customer",
+		"customer": get_random("Customer"),
 		"opportunity_type": "Sales",
 		"with_items": 1,
 		"transaction_date": frappe.flags.current_date,
@@ -108,7 +108,7 @@ def make_quotation(domain):
 			"creation": frappe.flags.current_date,
 			"doctype": "Quotation",
 			"quotation_to": "Customer",
-			"party_name": customer,
+			"customer": customer,
 			"currency": party_account_currency or company_currency,
 			"conversion_rate": exchange_rate,
 			"order_type": "Sales",

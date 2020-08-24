@@ -3,8 +3,8 @@
 
 frappe.views.calendar["Shift Assignment"] = {
 	field_map: {
-		"start": "start_date",
-		"end": "end_date",
+		"start": "date",
+		"end": "date",
 		"id": "name",
 		"docstatus": 1
 	},

@@ -1,5 +1,4 @@
 {
- "actions": [],
  "autoname": "hash",
  "creation": "2013-02-22 01:27:39",
  "doctype": "DocType",
@@ -11,14 +10,13 @@
   "account_type",
   "balance",
   "col_break1",
-  "bank_account",
+  "bank_account_no",
   "party_type",
   "party",
   "party_balance",
   "accounting_dimensions_section",
   "cost_center",
   "dimension_col_break",
-  "project",
   "currency_section",
   "account_currency",
   "column_break_10",
@@ -33,7 +31,7 @@
   "reference_type",
   "reference_name",
   "reference_due_date",
-  "reference_detail_no",
+  "project",
   "col_break3",
   "is_advance",
   "user_remark",
@@ -42,7 +40,7 @@
  "fields": [
   {
    "bold": 1,
-   "columns": 2,
+   "columns": 3,
    "fieldname": "account",
    "fieldtype": "Link",
    "in_global_search": 1,
@@ -92,15 +90,20 @@
    "fieldtype": "Column Break"
   },
   {
+   "fieldname": "bank_account_no",
+   "fieldtype": "Link",
+   "label": "Bank Account No",
+   "options": "Bank Account"
+  },
+  {
    "fieldname": "party_type",
    "fieldtype": "Link",
-   "in_list_view": 1,
    "label": "Party Type",
    "options": "DocType",
    "search_index": 1
   },
   {
-   "columns": 2,
+   "columns": 3,
    "fieldname": "party",
    "fieldtype": "Dynamic Link",
    "in_list_view": 1,
@@ -202,7 +205,7 @@
    "fieldname": "reference_type",
    "fieldtype": "Select",
    "label": "Reference Type",
-   "options": "\nSales Invoice\nPurchase Invoice\nJournal Entry\nSales Order\nPurchase Order\nExpense Claim\nAsset\nLoan\nPayroll Entry\nEmployee Advance\nExchange Rate Revaluation\nInvoice Discounting\nFees"
+   "options": "\nSales Invoice\nPurchase Invoice\nJournal Entry\nSales Order\nPurchase Order\nExpense Claim\nAsset\nLoan\nPayroll Entry\nEmployee Advance\nExchange Rate Revaluation\nInvoice Discounting"
   },
   {
    "fieldname": "reference_name",
@@ -255,7 +258,6 @@
    "print_hide": 1
   },
   {
-   "collapsible": 1,
    "fieldname": "accounting_dimensions_section",
    "fieldtype": "Section Break",
    "label": "Accounting Dimensions"
@@ -263,30 +265,16 @@
   {
    "fieldname": "dimension_col_break",
    "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "bank_account",
-   "fieldtype": "Link",
-   "label": "Bank Account",
-   "options": "Bank Account"
-  },
-  {
-   "fieldname": "reference_detail_no",
-   "fieldtype": "Data",
-   "hidden": 1,
-   "label": "Reference Detail No"
   }
  ],
  "idx": 1,
  "istable": 1,
- "links": [],
- "modified": "2020-06-24 14:06:54.833738",
+ "modified": "2019-05-25 22:14:02.715509",
  "modified_by": "Administrator",
  "module": "Accounts",
  "name": "Journal Entry Account",
  "owner": "Administrator",
  "permissions": [],
- "sort_field": "modified",
  "sort_order": "DESC",
  "track_changes": 1
 }

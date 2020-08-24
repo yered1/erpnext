@@ -59,12 +59,6 @@ erpnext.selling.SellingController = erpnext.TransactionController.extend({
 			});
 		}
 
-		if(this.frm.fields_dict.tc_name) {
-			this.frm.set_query("tc_name", function() {
-				return { filters: { selling: 1 } };
-			});
-		}
-
 		if(!this.frm.fields_dict["items"]) {
 			return;
 		}
@@ -84,13 +78,6 @@ erpnext.selling.SellingController = erpnext.TransactionController.extend({
 				return me.set_query_for_batch(doc, cdt, cdn)
 			});
 		}
-
-		if(this.frm.fields_dict["items"].grid.get_field('item_code')) {
-			this.frm.set_query("item_tax_template", "items", function(doc, cdt, cdn) {
-				return me.set_query_for_item_tax_template(doc, cdt, cdn)
-			});
-		}
-
 	},
 
 	refresh: function() {
@@ -142,7 +129,7 @@ erpnext.selling.SellingController = erpnext.TransactionController.extend({
 		frappe.model.round_floats_in(item, ["price_list_rate", "discount_percentage"]);
 
 		// check if child doctype is Sales Order Item/Qutation Item and calculate the rate
-		if(in_list(["Quotation Item", "Sales Order Item", "Delivery Note Item", "Sales Invoice Item", "POS Invoice Item"]), cdt)
+		if(in_list(["Quotation Item", "Sales Order Item", "Delivery Note Item", "Sales Invoice Item"]), cdt)
 			this.apply_pricing_rule_on_item(item);
 		else
 			item.rate = flt(item.price_list_rate * (1 - item.discount_percentage / 100.0),
@@ -158,11 +145,6 @@ erpnext.selling.SellingController = erpnext.TransactionController.extend({
 	},
 
 	discount_amount: function(doc, cdt, cdn) {
-
-		if(doc.name === cdn) {
-			return;
-		}
-
 		var item = frappe.get_doc(cdt, cdn);
 		item.discount_percentage = 0.0;
 		this.apply_discount_on_item(doc, cdt, cdn, 'discount_amount');
@@ -228,15 +210,9 @@ erpnext.selling.SellingController = erpnext.TransactionController.extend({
 	warehouse: function(doc, cdt, cdn) {
 		var me = this;
 		var item = frappe.get_doc(cdt, cdn);
-
-		if (item.serial_no && item.qty === item.serial_no.split(`\n`).length) {
-			return;
-		}
-
 		if (item.serial_no && !item.batch_no) {
 			item.serial_no = null;
 		}
-
 		var has_batch_no;
 		frappe.db.get_value('Item', {'item_code': item.item_code}, 'has_batch_no', (r) => {
 			has_batch_no = r && r.has_batch_no;
@@ -247,15 +223,12 @@ erpnext.selling.SellingController = erpnext.TransactionController.extend({
 					args: {
 						item_code: item.item_code,
 						warehouse: item.warehouse,
-						has_batch_no: has_batch_no || 0,
+						has_batch_no: has_batch_no,
 						stock_qty: item.stock_qty,
 						serial_no: item.serial_no || "",
 					},
 					callback:function(r){
 						if (in_list(['Delivery Note', 'Sales Invoice'], doc.doctype)) {
-
-							if (doc.doctype === 'Sales Invoice' && (!doc.update_stock)) return;
-
 							me.set_batch_number(cdt, cdn);
 							me.batch_no(doc, cdt, cdn);
 						}
@@ -312,11 +285,6 @@ erpnext.selling.SellingController = erpnext.TransactionController.extend({
 	batch_no: function(doc, cdt, cdn) {
 		var me = this;
 		var item = frappe.get_doc(cdt, cdn);
-
-		if (item.serial_no) {
-			return;
-		}
-
 		item.serial_no = null;
 		var has_serial_no;
 		frappe.db.get_value('Item', {'item_code': item.item_code}, 'has_serial_no', (r) => {
@@ -327,7 +295,7 @@ erpnext.selling.SellingController = erpnext.TransactionController.extend({
 					child: item,
 					args: {
 						"batch_no": item.batch_no,
-						"stock_qty": item.stock_qty || item.qty, //if stock_qty field is not available fetch qty (in case of Packed Items table)
+						"stock_qty": item.stock_qty,
 						"warehouse": item.warehouse,
 						"item_code": item.item_code,
 						"has_serial_no": has_serial_no
@@ -404,18 +372,13 @@ erpnext.selling.SellingController = erpnext.TransactionController.extend({
 	    this._super(doc, cdt, cdn, dont_fetch_price_list_rate);
 		if(frappe.meta.get_docfield(cdt, "stock_qty", cdn) &&
 			in_list(['Delivery Note', 'Sales Invoice'], doc.doctype)) {
-				if (doc.doctype === 'Sales Invoice' && (!doc.update_stock)) return;
-				this.set_batch_number(cdt, cdn);
-			}
+			this.set_batch_number(cdt, cdn);
+		}
 	},
 
 	qty: function(doc, cdt, cdn) {
 		this._super(doc, cdt, cdn);
-
-		if(in_list(['Delivery Note', 'Sales Invoice'], doc.doctype)) {
-			if (doc.doctype === 'Sales Invoice' && (!doc.update_stock)) return;
-			this.set_batch_number(cdt, cdn);
-		}
+		this.set_batch_number(cdt, cdn);
 	},
 
 	/* Determine appropriate batch number and set it in the form.
@@ -424,20 +387,15 @@ erpnext.selling.SellingController = erpnext.TransactionController.extend({
 	*/
 	set_batch_number: function(cdt, cdn) {
 		const doc = frappe.get_doc(cdt, cdn);
-		if (doc && doc.has_batch_no && doc.warehouse) {
+		if (doc && doc.has_batch_no) {
 			this._set_batch_number(doc);
 		}
 	},
 
 	_set_batch_number: function(doc) {
-		let args = {'item_code': doc.item_code, 'warehouse': doc.warehouse, 'qty': flt(doc.qty) * flt(doc.conversion_factor)};
-		if (doc.has_serial_no && doc.serial_no) {
-			args['serial_no'] = doc.serial_no
-		}
-
 		return frappe.call({
 			method: 'erpnext.stock.doctype.batch.batch.get_batch_no',
-			args: args,
+			args: {'item_code': doc.item_code, 'warehouse': doc.warehouse, 'qty': flt(doc.qty) * flt(doc.conversion_factor)},
 			callback: function(r) {
 				if(r.message) {
 					frappe.model.set_value(doc.doctype, doc.name, 'batch_no', r.message);
@@ -451,7 +409,7 @@ erpnext.selling.SellingController = erpnext.TransactionController.extend({
 	update_auto_repeat_reference: function(doc) {
 		if (doc.auto_repeat) {
 			frappe.call({
-				method:"frappe.automation.doctype.auto_repeat.auto_repeat.update_reference",
+				method:"frappe.desk.doctype.auto_repeat.auto_repeat.update_reference",
 				args:{
 					docname: doc.auto_repeat,
 					reference:doc.name
@@ -494,18 +452,13 @@ frappe.ui.form.on(cur_frm.doctype, {
 		var dialog = new frappe.ui.Dialog({
 			title: __("Set as Lost"),
 			fields: [
-				{
-					"fieldtype": "Table MultiSelect",
-					"label": __("Lost Reasons"),
-					"fieldname": "lost_reason",
-					"options": frm.doctype === 'Opportunity' ? 'Opportunity Lost Reason Detail': 'Quotation Lost Reason Detail',
-					"reqd": 1
-				},
-				{
-					"fieldtype": "Text",
-					"label": __("Detailed Reason"),
-					"fieldname": "detailed_reason"
-				},
+				{"fieldtype": "Table MultiSelect",
+				"label": __("Lost Reasons"),
+				"fieldname": "lost_reason",
+				"options": "Lost Reason Detail",
+				"reqd": 1},
+
+				{"fieldtype": "Text", "label": __("Detailed Reason"), "fieldname": "detailed_reason"},
 			],
 			primary_action: function() {
 				var values = dialog.get_values();

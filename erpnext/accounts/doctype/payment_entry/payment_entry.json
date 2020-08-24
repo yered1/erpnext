@@ -40,7 +40,7 @@
   "target_exchange_rate",
   "base_received_amount",
   "section_break_14",
-  "get_outstanding_invoice",
+  "allocate_payment_amount",
   "references",
   "section_break_34",
   "total_allocated_amount",
@@ -62,7 +62,6 @@
   "dimension_col_break",
   "cost_center",
   "section_break_12",
-  "status",
   "remarks",
   "column_break_16",
   "letter_head",
@@ -326,16 +325,19 @@
    "reqd": 1
   },
   {
+   "collapsible": 1,
+   "collapsible_depends_on": "references",
    "depends_on": "eval:(doc.party && doc.paid_from && doc.paid_to && doc.paid_amount && doc.received_amount)",
    "fieldname": "section_break_14",
    "fieldtype": "Section Break",
    "label": "Reference"
   },
   {
-   "depends_on": "eval:doc.docstatus==0",
-   "fieldname": "get_outstanding_invoice",
-   "fieldtype": "Button",
-   "label": "Get Outstanding Invoice"
+   "default": "1",
+   "depends_on": "eval:in_list(['Pay', 'Receive'], doc.payment_type)",
+   "fieldname": "allocate_payment_amount",
+   "fieldtype": "Check",
+   "label": "Allocate Payment Amount"
   },
   {
    "fieldname": "references",
@@ -565,18 +567,10 @@
   {
    "fieldname": "dimension_col_break",
    "fieldtype": "Column Break"
-  },
-  {
-   "default": "Draft",
-   "fieldname": "status",
-   "fieldtype": "Select",
-   "label": "Status",
-   "options": "\nDraft\nSubmitted\nCancelled",
-   "read_only": 1
   }
  ],
  "is_submittable": 1,
- "modified": "2019-12-08 13:02:30.016610",
+ "modified": "2019-05-25 22:02:40.575822",
  "modified_by": "Administrator",
  "module": "Accounts",
  "name": "Payment Entry",

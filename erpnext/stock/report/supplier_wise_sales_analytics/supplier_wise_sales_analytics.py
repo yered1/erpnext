@@ -21,7 +21,7 @@ def execute(filters=None):
 			for cd in consumed_details.get(item_code):
 
 				if (cd.voucher_no not in material_transfer_vouchers):
-					if cd.voucher_type in ["Delivery Note", "Sales Invoice"]:
+					if cd.voucher_type=="Delivery Note":
 						delivered_qty += abs(flt(cd.actual_qty))
 						delivered_amount += abs(flt(cd.stock_value_difference))
 					elif cd.voucher_type!="Delivery Note":
@@ -94,13 +94,9 @@ def get_suppliers_details(filters):
 				item_supplier_map.setdefault(d.item_code, []).append(d.supplier)
 
 	if supplier:
-		invalid_items = []
 		for item_code, suppliers in iteritems(item_supplier_map):
 			if supplier not in suppliers:
-				invalid_items.append(item_code)
-
-		for item_code in invalid_items:
-			del item_supplier_map[item_code]
+				del item_supplier_map[item_code]
 
 	return item_supplier_map
 

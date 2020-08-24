@@ -11,17 +11,17 @@ frappe.query_reports["Accounts Receivable Summary"] = {
 			"default": frappe.defaults.get_user_default("Company")
 		},
 		{
-			"fieldname":"report_date",
-			"label": __("Posting Date"),
-			"fieldtype": "Date",
-			"default": frappe.datetime.get_today()
-		},
-		{
 			"fieldname":"ageing_based_on",
 			"label": __("Ageing Based On"),
 			"fieldtype": "Select",
 			"options": 'Posting Date\nDue Date',
-			"default": "Due Date"
+			"default": "Posting Date"
+		},
+		{
+			"fieldname":"report_date",
+			"label": __("Date"),
+			"fieldtype": "Date",
+			"default": frappe.datetime.get_today()
 		},
 		{
 			"fieldname":"range1",
@@ -106,17 +106,7 @@ frappe.query_reports["Accounts Receivable Summary"] = {
 			"label": __("Sales Person"),
 			"fieldtype": "Link",
 			"options": "Sales Person"
-		},
-		{
-			"fieldname":"based_on_payment_terms",
-			"label": __("Based On Payment Terms"),
-			"fieldtype": "Check",
-		},
-		{
-			"fieldname":"show_future_payments",
-			"label": __("Show Future Payments"),
-			"fieldtype": "Check",
-		},
+		}
 	],
 
 	onload: function(report) {
@@ -126,5 +116,3 @@ frappe.query_reports["Accounts Receivable Summary"] = {
 		});
 	}
 }
-
-erpnext.utils.add_dimensions('Accounts Receivable Summary', 9);

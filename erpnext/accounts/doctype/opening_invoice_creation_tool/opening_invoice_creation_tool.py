@@ -7,7 +7,6 @@ import frappe
 from frappe import _, scrub
 from frappe.utils import flt, nowdate
 from frappe.model.document import Document
-from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import get_accounting_dimensions
 
 
 class OpeningInvoiceCreationTool(Document):
@@ -32,10 +31,8 @@ class OpeningInvoiceCreationTool(Document):
 				})
 				invoices_summary.update({company: _summary})
 
-				if invoice.paid_amount:
-					paid_amount.append(invoice.paid_amount)
-				if invoice.outstanding_amount:
-					outstanding_amount.append(invoice.outstanding_amount)
+				paid_amount.append(invoice.paid_amount)
+				outstanding_amount.append(invoice.outstanding_amount)
 
 			if paid_amount or outstanding_amount:
 				max_count.update({
@@ -68,9 +65,6 @@ class OpeningInvoiceCreationTool(Document):
 		if not self.company:
 			frappe.throw(_("Please select the Company"))
 
-		company_details = frappe.get_cached_value('Company', self.company,
-			["default_currency", "default_letter_head"], as_dict=1) or {}
-
 		for row in self.invoices:
 			if not row.qty:
 				row.qty = 1.0
@@ -101,12 +95,6 @@ class OpeningInvoiceCreationTool(Document):
 			args = self.get_invoice_dict(row=row)
 			if not args:
 				continue
-
-			if company_details:
-				args.update({
-					"currency": company_details.get("default_currency"),
-					"letter_head": company_details.get("default_letter_head")
-				})
 
 			doc = frappe.get_doc(args).insert()
 			doc.submit()
@@ -181,15 +169,9 @@ class OpeningInvoiceCreationTool(Document):
 			"due_date": row.due_date,
 			"posting_date": row.posting_date,
 			frappe.scrub(party_type): row.party,
-			"doctype": "Sales Invoice" if self.invoice_type == "Sales" else "Purchase Invoice"
+			"doctype": "Sales Invoice" if self.invoice_type == "Sales" else "Purchase Invoice",
+			"currency": frappe.get_cached_value('Company',  self.company,  "default_currency")
 		})
-
-		accounting_dimension = get_accounting_dimensions()
-
-		for dimension in accounting_dimension:
-			args.update({
-				dimension: item.get(dimension)
-			})
 
 		if self.invoice_type == "Sales":
 			args["is_pos"] = 0

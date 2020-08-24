@@ -1,5 +1,4 @@
 {
- "actions": [],
  "creation": "2013-06-24 15:49:57",
  "description": "Settings for Accounts",
  "doctype": "DocType",
@@ -11,7 +10,6 @@
   "acc_frozen_upto",
   "frozen_accounts_modifier",
   "determine_address_tax_category_from",
-  "over_billing_allowance",
   "column_break_4",
   "credit_controller",
   "check_supplier_invoice_uniqueness",
@@ -19,14 +17,9 @@
   "unlink_payment_on_cancellation_of_invoice",
   "unlink_advance_payment_on_cancelation_of_order",
   "book_asset_depreciation_entry_automatically",
+  "allow_cost_center_in_entry_of_bs_account",
   "add_taxes_from_item_tax_template",
   "automatically_fetch_payment_terms",
-  "deferred_accounting_settings_section",
-  "automatically_process_deferred_accounting_entry",
-  "book_deferred_entries_based_on",
-  "column_break_18",
-  "book_deferred_entries_via_journal_entry",
-  "submit_journal_entries",
   "print_settings",
   "show_inclusive_tax_in_print",
   "column_break_12",
@@ -83,13 +76,11 @@
    "options": "Role"
   },
   {
-   "default": "0",
    "fieldname": "check_supplier_invoice_uniqueness",
    "fieldtype": "Check",
    "label": "Check Supplier Invoice Number Uniqueness"
   },
   {
-   "default": "0",
    "fieldname": "make_payment_via_journal_entry",
    "fieldtype": "Check",
    "label": "Make Payment via Journal Entry"
@@ -113,6 +104,11 @@
    "label": "Book Asset Depreciation Entry Automatically"
   },
   {
+   "fieldname": "allow_cost_center_in_entry_of_bs_account",
+   "fieldtype": "Check",
+   "label": "Allow Cost Center In Entry of Balance Sheet Account"
+  },
+  {
    "default": "1",
    "fieldname": "add_taxes_from_item_tax_template",
    "fieldtype": "Check",
@@ -124,7 +120,6 @@
    "label": "Print Settings"
   },
   {
-   "default": "0",
    "fieldname": "show_inclusive_tax_in_print",
    "fieldtype": "Check",
    "label": "Show Inclusive Tax In Print"
@@ -134,7 +129,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "default": "0",
    "fieldname": "show_payment_schedule_in_print",
    "fieldtype": "Check",
    "label": "Show Payment Schedule in Print"
@@ -171,61 +165,15 @@
    "label": "Use Custom Cash Flow Format"
   },
   {
-   "default": "0",
    "fieldname": "automatically_fetch_payment_terms",
    "fieldtype": "Check",
    "label": "Automatically Fetch Payment Terms"
-  },
-  {
-   "description": "Percentage you are allowed to bill more against the amount ordered. For example: If the order value is $100 for an item and tolerance is set as 10% then you are allowed to bill for $110.",
-   "fieldname": "over_billing_allowance",
-   "fieldtype": "Currency",
-   "label": "Over Billing Allowance (%)"
-  },
-  {
-   "default": "1",
-   "fieldname": "automatically_process_deferred_accounting_entry",
-   "fieldtype": "Check",
-   "label": "Automatically Process Deferred Accounting Entry"
-  },
-  {
-   "fieldname": "deferred_accounting_settings_section",
-   "fieldtype": "Section Break",
-   "label": "Deferred Accounting Settings"
-  },
-  {
-   "fieldname": "column_break_18",
-   "fieldtype": "Column Break"
-  },
-  {
-   "default": "0",
-   "description": "If this is unchecked direct GL Entries will be created to book Deferred Revenue/Expense",
-   "fieldname": "book_deferred_entries_via_journal_entry",
-   "fieldtype": "Check",
-   "label": "Book Deferred Entries Via Journal Entry"
-  },
-  {
-   "default": "0",
-   "depends_on": "eval:doc.book_deferred_entries_via_journal_entry",
-   "description": "If this is unchecked Journal Entries will be saved in a Draft state and will have to be submitted manually",
-   "fieldname": "submit_journal_entries",
-   "fieldtype": "Check",
-   "label": "Submit Journal Entries"
-  },
-  {
-   "default": "Days",
-   "description": "If \"Months\" is selected then fixed amount will be booked as deferred revenue or expense for each month irrespective of number of days in a month. Will be prorated if deferred revenue or expense is not booked for an entire month.",
-   "fieldname": "book_deferred_entries_based_on",
-   "fieldtype": "Select",
-   "label": "Book Deferred Entries Based On",
-   "options": "Days\nMonths"
   }
  ],
  "icon": "icon-cog",
  "idx": 1,
  "issingle": 1,
- "links": [],
- "modified": "2020-08-03 20:13:26.043092",
+ "modified": "2019-04-28 18:20:55.789946",
  "modified_by": "Administrator",
  "module": "Accounts",
  "name": "Accounts Settings",
@@ -250,7 +198,6 @@
   }
  ],
  "quick_entry": 1,
- "sort_field": "modified",
  "sort_order": "ASC",
  "track_changes": 1
 }

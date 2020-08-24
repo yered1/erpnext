@@ -4,15 +4,6 @@
 frappe.provide("erpnext.company");
 
 frappe.ui.form.on("Company", {
-	onload: function(frm) {
-		if (frm.doc.__islocal && frm.doc.parent_company) {
-			frappe.db.get_value('Company', frm.doc.parent_company, 'is_group', (r) => {
-				if (!r.is_group) {
-					frm.set_value('parent_company', '');
-				}
-			});
-		}
-	},
 	setup: function(frm) {
 		erpnext.company.setup_queries(frm);
 		frm.set_query("hra_component", function(){
@@ -26,30 +17,11 @@ frappe.ui.form.on("Company", {
 				filters: {"is_group": 1}
 			}
 		});
-
-		frm.set_query("default_selling_terms", function() {
-			return { filters: { selling: 1 } };
-		});
-
-		frm.set_query("default_buying_terms", function() {
-			return { filters: { buying: 1 } };
-		});
-
-		frm.set_query("default_in_transit_warehouse", function() {
-			return {
-				filters:{
-					'warehouse_type' : 'Transit',
-					'is_group': 0,
-					'company': frm.doc.company
-				}
-			};
-		});
 	},
 
 	company_name: function(frm) {
 		if(frm.doc.__islocal) {
-			// add missing " " arg in split method
-			let parts = frm.doc.company_name.split(" ");
+			let parts = frm.doc.company_name.split();
 			let abbr = $.map(parts, function (p) {
 				return p? p.substr(0, 1) : null;
 			}).join("");
@@ -117,9 +89,6 @@ frappe.ui.form.on("Company", {
 
 		erpnext.company.set_chart_of_accounts_options(frm.doc);
 
-		if (!frappe.user.has_role('System Manager')) {
-			frm.get_field("delete_company_transactions").hide();
-		}
 	},
 
 	make_default_tax_template: function(frm) {
@@ -147,7 +116,7 @@ frappe.ui.form.on("Company", {
 			var d = frappe.prompt({
 				fieldtype:"Data",
 				fieldname: "company_name",
-				label: __("Please enter the company name to confirm"),
+				label: __("Please re-type company name to confirm"),
 				reqd: 1,
 				description: __("Please make sure you really want to delete all the transactions for this company. Your master data will remain as it is. This action cannot be undone.")
 			},
@@ -274,10 +243,7 @@ erpnext.company.setup_queries = function(frm) {
 			["expenses_included_in_valuation",
 				{"root_type": "Expense", "account_type": "Expenses Included in Valuation"}],
 			["stock_received_but_not_billed",
-				{"root_type": "Liability", "account_type": "Stock Received But Not Billed"}],
-			["service_received_but_not_billed",
-				{"root_type": "Liability", "account_type": "Service Received But Not Billed"}],
-
+				{"root_type": "Liability", "account_type": "Stock Received But Not Billed"}]
 		], function(i, v) {
 			erpnext.company.set_custom_query(frm, v);
 		});

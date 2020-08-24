@@ -23,19 +23,22 @@ class Bin(Document):
 			if not args.get("posting_date"):
 				args["posting_date"] = nowdate()
 
+			# update valuation and qty after transaction for post dated entry
+			if args.get("is_cancelled") == "Yes" and via_landed_cost_voucher:
+				return
 			update_entries_after({
 				"item_code": self.item_code,
 				"warehouse": self.warehouse,
 				"posting_date": args.get("posting_date"),
 				"posting_time": args.get("posting_time"),
-				"voucher_no": args.get("voucher_no"),
-				"sle_id": args.sle_id
+				"voucher_no": args.get("voucher_no")
 			}, allow_negative_stock=allow_negative_stock, via_landed_cost_voucher=via_landed_cost_voucher)
 
 	def update_qty(self, args):
 		# update the stock values (for current quantities)
 		if args.get("voucher_type")=="Stock Reconciliation":
-			self.actual_qty = args.get("qty_after_transaction")
+			if args.get('is_cancelled') == 'No':
+				self.actual_qty = args.get("qty_after_transaction")
 		else:
 			self.actual_qty = flt(self.actual_qty) + flt(args.get("actual_qty"))
 
@@ -66,21 +69,15 @@ class Bin(Document):
 		'''Update qty reserved for production from Production Item tables
 			in open work orders'''
 		self.reserved_qty_for_production = frappe.db.sql('''
-			SELECT
-				CASE WHEN ifnull(skip_transfer, 0) = 0 THEN
-					SUM(item.required_qty - item.transferred_qty)
-				ELSE
-					SUM(item.required_qty - item.consumed_qty)
-				END
-			FROM `tabWork Order` pro, `tabWork Order Item` item
-			WHERE
+			select sum(item.required_qty - item.transferred_qty)
+			from `tabWork Order` pro, `tabWork Order Item` item
+			where
 				item.item_code = %s
 				and item.parent = pro.name
 				and pro.docstatus = 1
 				and item.source_warehouse = %s
 				and pro.status not in ("Stopped", "Completed")
-				and (item.required_qty > item.transferred_qty or item.required_qty > item.consumed_qty)
-		''', (self.item_code, self.warehouse))[0][0]
+				and item.required_qty > item.transferred_qty''', (self.item_code, self.warehouse))[0][0]
 
 		self.set_projected_qty()
 

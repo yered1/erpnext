@@ -450,7 +450,7 @@ frappe.help.help_links['Form/Opportunity'] = [
 ]
 
 frappe.help.help_links['Form/Address'] = [
-	{ label: 'Address', url: docsUrl + 'user/manual/en/CRM/address' },
+	{ label: 'Address', url: docsUrl + 'user/manual/en/CRM/contact' },
 ]
 
 frappe.help.help_links['Form/Contact'] = [

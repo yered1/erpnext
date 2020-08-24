@@ -8,11 +8,11 @@ frappe.listview_settings['Issue'] = {
 
 		var method = "erpnext.support.doctype.issue.issue.set_multiple_status";
 
-		listview.page.add_action_item(__("Set as Open"), function() {
+		listview.page.add_menu_item(__("Set as Open"), function() {
 			listview.call_for_selected_items(method, {"status": "Open"});
 		});
 
-		listview.page.add_action_item(__("Set as Closed"), function() {
+		listview.page.add_menu_item(__("Set as Closed"), function() {
 			listview.call_for_selected_items(method, {"status": "Closed"});
 		});
 	},
@@ -23,8 +23,8 @@ frappe.listview_settings['Issue'] = {
 				'Low': 'yellow',
 				'Medium': 'orange',
 				'High': 'red'
-			};
-			return [__(doc.status), color[doc.priority] || 'red', `status,=,Open`];
+			}
+			return [__(doc.status), color[doc.priority] || 'Red', `status,=,Open`];
 		} else if (doc.status === 'Closed') {
 			return [__(doc.status), "green", "status,=," + doc.status];
 		} else {

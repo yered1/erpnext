@@ -13,28 +13,7 @@ class TestAttendanceRequest(unittest.TestCase):
 		for doctype in ["Attendance Request", "Attendance"]:
 			frappe.db.sql("delete from `tab{doctype}`".format(doctype=doctype))
 
-	def test_on_duty_attendance_request(self):
-		today = nowdate()
-		employee = get_employee()
-		attendance_request = frappe.new_doc("Attendance Request")
-		attendance_request.employee = employee.name
-		attendance_request.from_date = date(date.today().year, 1, 1)
-		attendance_request.to_date = date(date.today().year, 1, 2)
-		attendance_request.reason = "On Duty"
-		attendance_request.company = "_Test Company"
-		attendance_request.insert()
-		attendance_request.submit()
-		attendance = frappe.get_doc('Attendance', {
-			'employee': employee.name,
-			'attendance_date': date(date.today().year, 1, 1),
-			'docstatus': 1
-		})
-		self.assertEqual(attendance.status, 'Present')
-		attendance_request.cancel()
-		attendance.reload()
-		self.assertEqual(attendance.docstatus, 2)
-
-	def test_work_from_home_attendance_request(self):
+	def test_attendance_request(self):
 		today = nowdate()
 		employee = get_employee()
 		attendance_request = frappe.new_doc("Attendance Request")
@@ -50,7 +29,7 @@ class TestAttendanceRequest(unittest.TestCase):
 			'attendance_date': date(date.today().year, 1, 1),
 			'docstatus': 1
 		})
-		self.assertEqual(attendance.status, 'Work From Home')
+		self.assertEqual(attendance.status, 'Present')
 		attendance_request.cancel()
 		attendance.reload()
 		self.assertEqual(attendance.docstatus, 2)

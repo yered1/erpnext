@@ -5,14 +5,12 @@
 from __future__ import unicode_literals
 import frappe
 from frappe.model.document import Document
-from frappe.utils import getdate,today
 from frappe import _
 from frappe.desk.form.linked_with import get_linked_doctypes
 from erpnext.education.utils import check_content_completion, check_quiz_completion
 class Student(Document):
 	def validate(self):
 		self.title = " ".join(filter(None, [self.first_name, self.middle_name, self.last_name]))
-		self.validate_dates()
 
 		if self.student_applicant:
 			self.check_unique()
@@ -20,20 +18,6 @@ class Student(Document):
 
 		if frappe.get_value("Student", self.name, "title") != self.title:
 			self.update_student_name_in_linked_doctype()
-
-	def validate_dates(self):
-		for sibling in self.siblings:
-			if sibling.date_of_birth and getdate(sibling.date_of_birth) > getdate():
-				frappe.throw(_("Row {0}:Sibling Date of Birth cannot be greater than today.").format(sibling.idx))
-
-		if self.date_of_birth and getdate(self.date_of_birth) >= getdate(today()):
-			frappe.throw(_("Date of Birth cannot be greater than today."))
-
-		if self.date_of_birth and getdate(self.date_of_birth) >= getdate(self.joining_date):
-			frappe.throw(_("Date of Birth cannot be greater than Joining Date."))
-
-		if self.joining_date and self.date_of_leaving and getdate(self.joining_date) > getdate(self.date_of_leaving):
-			frappe.throw(_("Joining Date can not be greater than Leaving Date"))
 
 	def update_student_name_in_linked_doctype(self):
 		linked_doctypes = get_linked_doctypes("Student")
@@ -56,8 +40,7 @@ class Student(Document):
 			frappe.throw(_("Student {0} exist against student applicant {1}").format(student[0][0], self.student_applicant))
 
 	def after_insert(self):
-		if not frappe.get_single('Education Settings').get('user_creation_skip'):
-			self.create_student_user()
+		self.create_student_user()
 
 	def create_student_user(self):
 		"""Create a website user for student creation if not already exists"""
@@ -71,7 +54,6 @@ class Student(Document):
 				'send_welcome_email': 1,
 				'user_type': 'Website User'
 				})
-			student_user.flags.ignore_permissions = True
 			student_user.add_roles("Student")
 			student_user.save()
 			update_password_link = student_user.reset_password()
@@ -157,5 +139,5 @@ def get_timeline_data(doctype, name):
 		from `tabStudent Attendance` where
 			student=%s
 			and `date` > date_sub(curdate(), interval 1 year)
-			and docstatus = 1 and status = 'Present'
+			and status = 'Present'
 			group by date''', name))

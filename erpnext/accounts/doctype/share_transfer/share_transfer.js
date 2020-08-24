@@ -16,13 +16,11 @@ frappe.ui.form.on('Share Transfer', {
 				};
 			};
 		});
-		if (frm.doc.docstatus == 1 && frm.doc.equity_or_liability_account && frm.doc.asset_account) {
+		if (frm.doc.docstatus == 1) {
 			frm.add_custom_button(__('Create Journal Entry'), function () {
 				erpnext.share_transfer.make_jv(frm);
 			});
 		}
-
-		frm.toggle_reqd("asset_account", frm.doc.transfer_type != "Transfer");
 	},
 	no_of_shares: (frm) => {
 		if (frm.doc.rate != undefined || frm.doc.rate != null){
@@ -58,10 +56,6 @@ frappe.ui.form.on('Share Transfer', {
 				};
 			});
 		}
-	},
-
-	transfer_type: function(frm) {
-		frm.toggle_reqd("asset_account", frm.doc.transfer_type != "Transfer");
 	}
 });
 

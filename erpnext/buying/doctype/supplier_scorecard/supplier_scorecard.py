@@ -138,7 +138,7 @@ def refresh_scorecards():
 		# Check to see if any new scorecard periods are created
 		if make_all_scorecards(sc.name) > 0:
 			# Save the scorecard to update the score and standings
-			frappe.get_doc('Supplier Scorecard', sc.name).save()
+			sc.save()
 
 
 @frappe.whitelist()

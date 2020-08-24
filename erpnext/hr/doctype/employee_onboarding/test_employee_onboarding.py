@@ -8,21 +8,15 @@ import unittest
 from frappe.utils import nowdate
 from erpnext.hr.doctype.employee_onboarding.employee_onboarding import make_employee
 from erpnext.hr.doctype.employee_onboarding.employee_onboarding import IncompleteTaskError
-from erpnext.hr.doctype.job_offer.test_job_offer import create_job_offer
 
 class TestEmployeeOnboarding(unittest.TestCase):
 	def test_employee_onboarding_incomplete_task(self):
 		if frappe.db.exists('Employee Onboarding', {'employee_name': 'Test Researcher'}):
-			frappe.delete_doc('Employee Onboarding', {'employee_name': 'Test Researcher'})
+			return frappe.get_doc('Employee Onboarding', {'employee_name': 'Test Researcher'})
 		_set_up()
 		applicant = get_job_applicant()
-
-		job_offer = create_job_offer(job_applicant=applicant.name)
-		job_offer.submit()
-
 		onboarding = frappe.new_doc('Employee Onboarding')
 		onboarding.job_applicant = applicant.name
-		onboarding.job_offer = job_offer.name
 		onboarding.company = '_Test Company'
 		onboarding.designation = 'Researcher'
 		onboarding.append('activities', {
@@ -45,10 +39,8 @@ class TestEmployeeOnboarding(unittest.TestCase):
 
 		# complete the task
 		project = frappe.get_doc('Project', onboarding.project)
-		for task in frappe.get_all('Task', dict(project=project.name)):
-			task = frappe.get_doc('Task', task.name)
-			task.status = 'Completed'
-			task.save()
+		project.tasks[0].status = 'Completed'
+		project.save()
 
 		# make employee
 		onboarding.reload()
@@ -78,3 +70,4 @@ def _set_up():
 	project = "Employee Onboarding : Test Researcher - test@researcher.com"
 	frappe.db.sql("delete from tabProject where name=%s", project)
 	frappe.db.sql("delete from tabTask where project=%s", project)
+	frappe.db.sql("delete from `tabProject Task` where parent=%s", project)

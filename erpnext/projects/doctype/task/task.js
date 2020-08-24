@@ -3,42 +3,55 @@
 
 frappe.provide("erpnext.projects");
 
+cur_frm.add_fetch("project", "company", "company");
+
 frappe.ui.form.on("Task", {
-	setup: function (frm) {
-		frm.set_query("project", function () {
-			return {
-				query: "erpnext.projects.doctype.task.task.get_project"
-			}
-		});
-
-		frm.make_methods = {
-			'Timesheet': () => frappe.model.open_mapped_doc({
-				method: 'erpnext.projects.doctype.task.task.make_timesheet',
-				frm: frm
-			})
-		}
-	},
-
-	onload: function (frm) {
-		frm.set_query("task", "depends_on", function () {
-			let filters = {
+	onload: function(frm) {
+		frm.set_query("task", "depends_on", function() {
+			var filters = {
 				name: ["!=", frm.doc.name]
 			};
-			if (frm.doc.project) filters["project"] = frm.doc.project;
+			if(frm.doc.project) filters["project"] = frm.doc.project;
 			return {
 				filters: filters
 			};
 		})
+	},
 
-		frm.set_query("parent_task", function () {
-			let filters = {
-				"is_group": 1
-			};
-			if (frm.doc.project) filters["project"] = frm.doc.project;
+	refresh: function(frm) {
+		frm.fields_dict['parent_task'].get_query = function() {
 			return {
-				filters: filters
+				filters: {
+					"is_group": 1,
+				}
 			}
-		});
+		}
+
+		if(!frm.doc.is_group){
+			if (!frm.is_new()) {
+				if (frm.perm[0].write) {
+					if (!["Closed", "Cancelled"].includes(frm.doc.status)) {
+						frm.add_custom_button(__("Close"), () => {
+							frm.set_value("status", "Closed");
+							frm.save();
+						});
+					} else {
+						frm.add_custom_button(__("Reopen"), () => {
+							frm.set_value("status", "Open");
+							frm.save();
+						});
+					}
+				}
+			}
+		}
+	},
+
+	setup: function(frm) {
+		frm.fields_dict.project.get_query = function() {
+			return {
+				query: "erpnext.projects.doctype.task.task.get_project"
+			}
+		};
 	},
 
 	is_group: function (frm) {
@@ -56,8 +69,12 @@ frappe.ui.form.on("Task", {
 		})
 	},
 
-	validate: function (frm) {
+	validate: function(frm) {
 		frm.doc.project && frappe.model.remove_from_locals("Project",
 			frm.doc.project);
-	}
+	},
+
 });
+
+cur_frm.add_fetch('task', 'subject', 'subject');
+cur_frm.add_fetch('task', 'project', 'project');

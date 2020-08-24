@@ -1,5 +1,4 @@
 {
- "actions": [],
  "creation": "2017-04-05 13:33:04.519313",
  "doctype": "DocType",
  "editable_grid": 1,
@@ -12,7 +11,6 @@
   "validate_batch",
   "validate_course",
   "academic_term_reqd",
-  "user_creation_skip",
   "section_break_7",
   "instructor_created_by",
   "web_academy_settings_section",
@@ -43,14 +41,12 @@
    "fieldtype": "Column Break"
   },
   {
-   "default": "0",
    "description": "For Batch based Student Group, the Student Batch will be validated for every Student from the Program Enrollment.",
    "fieldname": "validate_batch",
    "fieldtype": "Check",
    "label": "Validate Batch for Students in Student Group"
   },
   {
-   "default": "0",
    "description": "For Course based Student Group, the Course will be validated for every Student from the enrolled Courses in Program Enrollment.",
    "fieldname": "validate_course",
    "fieldtype": "Check",
@@ -77,13 +73,13 @@
   {
    "fieldname": "web_academy_settings_section",
    "fieldtype": "Section Break",
-   "label": "Learning Management System Settings"
+   "label": "LMS Settings"
   },
   {
    "depends_on": "eval: doc.enable_lms",
    "fieldname": "portal_title",
    "fieldtype": "Data",
-   "label": "Learning Management System Title"
+   "label": "LMS Title"
   },
   {
    "depends_on": "eval: doc.enable_lms",
@@ -92,22 +88,13 @@
    "label": "Description"
   },
   {
-   "default": "0",
    "fieldname": "enable_lms",
    "fieldtype": "Check",
-   "label": "Enable Learning Management System"
-  },
-  {
-   "default": "0",
-   "description": "By default, a new User is created for every new Student. If enabled, no new User will be created when a new Student is created.",
-   "fieldname": "user_creation_skip",
-   "fieldtype": "Check",
-   "label": "Skip User creation for new Student"
+   "label": "Enable LMS"
   }
  ],
  "issingle": 1,
- "links": [],
- "modified": "2020-05-07 19:18:10.639356",
+ "modified": "2019-05-13 18:36:13.127563",
  "modified_by": "Administrator",
  "module": "Education",
  "name": "Education Settings",

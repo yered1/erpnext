@@ -18,31 +18,34 @@ def validate_return(doc):
 		validate_returned_items(doc)
 
 def validate_return_against(doc):
-	if not frappe.db.exists(doc.doctype, doc.return_against):
+	filters = {"doctype": doc.doctype, "docstatus": 1, "company": doc.company}
+	if doc.meta.get_field("customer") and doc.customer:
+		filters["customer"] = doc.customer
+	elif doc.meta.get_field("supplier") and doc.supplier:
+		filters["supplier"] = doc.supplier
+
+	if not frappe.db.exists(filters):
 			frappe.throw(_("Invalid {0}: {1}")
 				.format(doc.meta.get_label("return_against"), doc.return_against))
 	else:
 		ref_doc = frappe.get_doc(doc.doctype, doc.return_against)
 
-		party_type = "customer" if doc.doctype in ("Sales Invoice", "Delivery Note") else "supplier"
+		# validate posting date time
+		return_posting_datetime = "%s %s" % (doc.posting_date, doc.get("posting_time") or "00:00:00")
+		ref_posting_datetime = "%s %s" % (ref_doc.posting_date, ref_doc.get("posting_time") or "00:00:00")
 
-		if ref_doc.company == doc.company and ref_doc.get(party_type) == doc.get(party_type) and ref_doc.docstatus == 1:
-			# validate posting date time
-			return_posting_datetime = "%s %s" % (doc.posting_date, doc.get("posting_time") or "00:00:00")
-			ref_posting_datetime = "%s %s" % (ref_doc.posting_date, ref_doc.get("posting_time") or "00:00:00")
+		if get_datetime(return_posting_datetime) < get_datetime(ref_posting_datetime):
+			frappe.throw(_("Posting timestamp must be after {0}").format(format_datetime(ref_posting_datetime)))
 
-			if get_datetime(return_posting_datetime) < get_datetime(ref_posting_datetime):
-				frappe.throw(_("Posting timestamp must be after {0}").format(format_datetime(ref_posting_datetime)))
+		# validate same exchange rate
+		if doc.conversion_rate != ref_doc.conversion_rate:
+			frappe.throw(_("Exchange Rate must be same as {0} {1} ({2})")
+				.format(doc.doctype, doc.return_against, ref_doc.conversion_rate))
 
-			# validate same exchange rate
-			if doc.conversion_rate != ref_doc.conversion_rate:
-				frappe.throw(_("Exchange Rate must be same as {0} {1} ({2})")
-					.format(doc.doctype, doc.return_against, ref_doc.conversion_rate))
-
-			# validate update stock
-			if doc.doctype == "Sales Invoice" and doc.update_stock and not ref_doc.update_stock:
-					frappe.throw(_("'Update Stock' can not be checked because items are not delivered via {0}")
-						.format(doc.return_against))
+		# validate update stock
+		if doc.doctype == "Sales Invoice" and doc.update_stock and not ref_doc.update_stock:
+				frappe.throw(_("'Update Stock' can not be checked because items are not delivered via {0}")
+					.format(doc.return_against))
 
 def validate_returned_items(doc):
 	from erpnext.stock.doctype.serial_no.serial_no import get_serial_nos
@@ -72,9 +75,9 @@ def validate_returned_items(doc):
 
 	items_returned = False
 	for d in doc.get("items"):
-		if d.item_code and (flt(d.qty) < 0 or flt(d.get('received_qty')) < 0):
+		if flt(d.qty) < 0 or d.get('received_qty') < 0:
 			if d.item_code not in valid_items:
-				frappe.throw(_("Row # {0}: Returned Item {1} does not exist in {2} {3}")
+				frappe.throw(_("Row # {0}: Returned Item {1} does not exists in {2} {3}")
 					.format(d.idx, d.item_code, doc.doctype, doc.return_against))
 			else:
 				ref = valid_items.get(d.item_code, frappe._dict())
@@ -102,9 +105,6 @@ def validate_returned_items(doc):
 					and not d.get("warehouse"):
 						frappe.throw(_("Warehouse is mandatory"))
 
-			items_returned = True
-
-		elif d.item_name:
 			items_returned = True
 
 	if not items_returned:
@@ -205,15 +205,12 @@ def get_already_returned_items(doc):
 
 def make_return_doc(doctype, source_name, target_doc=None):
 	from frappe.model.mapper import get_mapped_doc
-	company = frappe.db.get_value("Delivery Note", source_name, "company")
-	default_warehouse_for_sales_return = frappe.db.get_value("Company", company, "default_warehouse_for_sales_return")
 	def set_missing_values(source, target):
 		doc = frappe.get_doc(target)
 		doc.is_return = 1
 		doc.return_against = source.name
 		doc.ignore_pricing_rule = 1
-		doc.set_warehouse = ""
-		if doctype == "Sales Invoice" or doctype == "POS Invoice":
+		if doctype == "Sales Invoice":
 			doc.is_pos = source.is_pos
 
 			# look for Print Heading "Credit Note"
@@ -229,7 +226,7 @@ def make_return_doc(doctype, source_name, target_doc=None):
 				tax.tax_amount = -1 * tax.tax_amount
 
 		if doc.get("is_return"):
-			if doc.doctype == 'Sales Invoice' or doc.doctype == 'POS Invoice':
+			if doc.doctype == 'Sales Invoice':
 				doc.set('payments', [])
 				for data in source.payments:
 					paid_amount = 0.00
@@ -241,16 +238,11 @@ def make_return_doc(doctype, source_name, target_doc=None):
 						'mode_of_payment': data.mode_of_payment,
 						'type': data.type,
 						'amount': -1 * paid_amount,
-						'base_amount': -1 * base_paid_amount,
-						'account': data.account
+						'base_amount': -1 * base_paid_amount
 					})
-				if doc.is_pos:
-					doc.paid_amount = -1 * source.paid_amount
 			elif doc.doctype == 'Purchase Invoice':
 				doc.paid_amount = -1 * source.paid_amount
 				doc.base_paid_amount = -1 * source.base_paid_amount
-				doc.payment_terms_template = ''
-				doc.payment_schedule = []
 
 		if doc.get("is_return") and hasattr(doc, "packed_items"):
 			for d in doc.get("packed_items"):
@@ -261,6 +253,7 @@ def make_return_doc(doctype, source_name, target_doc=None):
 
 	def update_item(source_doc, target_doc, source_parent):
 		target_doc.qty = -1* source_doc.qty
+		default_return_warehouse = frappe.db.get_single_value("Stock Settings", "default_return_warehouse")
 		if doctype == "Purchase Receipt":
 			target_doc.received_qty = -1* source_doc.received_qty
 			target_doc.rejected_qty = -1* source_doc.rejected_qty
@@ -269,8 +262,6 @@ def make_return_doc(doctype, source_name, target_doc=None):
 			target_doc.purchase_order = source_doc.purchase_order
 			target_doc.purchase_order_item = source_doc.purchase_order_item
 			target_doc.rejected_warehouse = source_doc.rejected_warehouse
-			target_doc.purchase_receipt_item = source_doc.name
-
 		elif doctype == "Purchase Invoice":
 			target_doc.received_qty = -1* source_doc.received_qty
 			target_doc.rejected_qty = -1* source_doc.rejected_qty
@@ -281,26 +272,19 @@ def make_return_doc(doctype, source_name, target_doc=None):
 			target_doc.rejected_warehouse = source_doc.rejected_warehouse
 			target_doc.po_detail = source_doc.po_detail
 			target_doc.pr_detail = source_doc.pr_detail
-			target_doc.purchase_invoice_item = source_doc.name
-
 		elif doctype == "Delivery Note":
 			target_doc.against_sales_order = source_doc.against_sales_order
 			target_doc.against_sales_invoice = source_doc.against_sales_invoice
 			target_doc.so_detail = source_doc.so_detail
 			target_doc.si_detail = source_doc.si_detail
 			target_doc.expense_account = source_doc.expense_account
-			target_doc.dn_detail = source_doc.name
-			if default_warehouse_for_sales_return:
-				target_doc.warehouse = default_warehouse_for_sales_return
-		elif doctype == "Sales Invoice" or doctype == "POS Invoice":
+			target_doc.warehouse = default_return_warehouse if default_return_warehouse else source_doc.warehouse
+		elif doctype == "Sales Invoice":
 			target_doc.sales_order = source_doc.sales_order
 			target_doc.delivery_note = source_doc.delivery_note
 			target_doc.so_detail = source_doc.so_detail
 			target_doc.dn_detail = source_doc.dn_detail
 			target_doc.expense_account = source_doc.expense_account
-			target_doc.sales_invoice_item = source_doc.name
-			if default_warehouse_for_sales_return:
-				target_doc.warehouse = default_warehouse_for_sales_return
 
 	def update_terms(source_doc, target_doc, source_parent):
 		target_doc.payment_amount = -source_doc.payment_amount

@@ -29,7 +29,7 @@
 	</thead>
 	<tbody>
 		<tr>
-			<td>(a) {{__("Outward taxable supplies(other than zero rated, nil rated and exempted)")}}</td>
+			<td>(a) {{__("Outward taxable supplies(other than zero rated, nil rated and exempted")}}</td>
 			<td class="right">{{ flt(data.sup_details.osup_det.txval, 2) }}</td>
 			<td class="right">{{ flt(data.sup_details.osup_det.iamt, 2) }}</td>
 			<td class="right">{{ flt(data.sup_details.osup_det.camt, 2) }}</td>
@@ -52,7 +52,7 @@
 			<td class="disabled"></td>
 			<td class="disabled"></td>
 		<tr>
-			<td>(d) {{__("Inward Supplies(liable to reverse charge)")}}</td>
+			<td>(d) {{__("Inward Supplies(liable to reverse charge")}}</td>
 			<td class="right">{{ flt(data.sup_details.isup_rev.txval, 2) }}</td>
 			<td class="right">{{ flt(data.sup_details.isup_rev.iamt, 2) }}</td>
 			<td class="right">{{ flt(data.sup_details.isup_rev.camt, 2) }}</td>
@@ -222,17 +222,17 @@
 			</tr>
 			<tr>
 				<td>&nbsp (1) {{__("As per rules 42 & 43 of CGST Rules")}}</td>
-				<td class="right">{{ flt(data.itc_elg.itc_rev[0].iamt, 2) }}</td>
-				<td class="right">{{ flt(data.itc_elg.itc_rev[0].camt, 2) }}</td>
-				<td class="right">{{ flt(data.itc_elg.itc_rev[0].samt, 2) }}</td>
-				<td class="right">{{ flt(data.itc_elg.itc_rev[0].csamt, 2) }}</td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
 			</tr>
 			<tr>
 				<td>&nbsp (2) {{__("Others")}}</td>
-				<td class="right">{{ flt(data.itc_elg.itc_rev[1].iamt, 2) }}</td>
-				<td class="right">{{ flt(data.itc_elg.itc_rev[1].camt, 2) }}</td>
-				<td class="right">{{ flt(data.itc_elg.itc_rev[1].samt, 2) }}</td>
-				<td class="right">{{ flt(data.itc_elg.itc_rev[1].csamt, 2) }}</td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
 			</tr>
 			<tr>
 				<td><b>(C) {{__("Net ITC Available(A) - (B)")}}</b></td>

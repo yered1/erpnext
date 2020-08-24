@@ -8,7 +8,6 @@ from frappe import _, scrub
 from frappe.utils import cint, flt, round_based_on_smallest_currency_fraction
 from erpnext.controllers.accounts_controller import validate_conversion_rate, \
 	validate_taxes_and_charges, validate_inclusive_tax
-from erpnext.stock.get_item_details import _get_item_tax_template
 
 class calculate_taxes_and_totals(object):
 	def __init__(self, doc):
@@ -16,9 +15,6 @@ class calculate_taxes_and_totals(object):
 		self.calculate()
 
 	def calculate(self):
-		if not len(self.doc.get("items")):
-			return
-
 		self.discount_amount_applied = False
 		self._calculate()
 
@@ -35,7 +31,6 @@ class calculate_taxes_and_totals(object):
 	def _calculate(self):
 		self.validate_conversion_rate()
 		self.calculate_item_values()
-		self.validate_item_tax_template()
 		self.initialize_taxes()
 		self.determine_exclusive_rate()
 		self.calculate_net_total()
@@ -44,39 +39,6 @@ class calculate_taxes_and_totals(object):
 		self.calculate_totals()
 		self._cleanup()
 		self.calculate_total_net_weight()
-
-	def validate_item_tax_template(self):
-		for item in self.doc.get('items'):
-			if item.item_code and item.get('item_tax_template'):
-				item_doc = frappe.get_cached_doc("Item", item.item_code)
-				args = {
-					'tax_category': self.doc.get('tax_category'),
-					'posting_date': self.doc.get('posting_date'),
-					'bill_date': self.doc.get('bill_date'),
-					'transaction_date': self.doc.get('transaction_date'),
-					'company': self.doc.get('company')
-				}
-
-				item_group = item_doc.item_group
-				item_group_taxes = []
-
-				while item_group:
-					item_group_doc = frappe.get_cached_doc('Item Group', item_group)
-					item_group_taxes += item_group_doc.taxes or []
-					item_group = item_group_doc.parent_item_group
-
-				item_taxes = item_doc.taxes or []
-
-				if not item_group_taxes and (not item_taxes):
-					# No validation if no taxes in item or item group
-					continue
-
-				taxes = _get_item_tax_template(args, item_taxes + item_group_taxes, for_validate=True)
-
-				if item.item_tax_template not in taxes:
-					frappe.throw(_("Row {0}: Invalid Item Tax Template for item {1}").format(
-						item.idx, frappe.bold(item.item_code)
-					))
 
 	def validate_conversion_rate(self):
 		# validate conversion rate
@@ -116,12 +78,7 @@ class calculate_taxes_and_totals(object):
 					item.discount_amount = item.price_list_rate - item.rate
 
 				item.net_rate = item.rate
-
-				if not item.qty and self.doc.get("is_return"):
-					item.amount = flt(-1 * item.rate, item.precision("amount"))
-				else:
-					item.amount = flt(item.rate * item.qty,	item.precision("amount"))
-
+				item.amount = flt(item.rate * item.qty,	item.precision("amount"))
 				item.net_amount = item.amount
 
 				self._set_in_company_currency(item, ["price_list_rate", "rate", "net_rate", "amount", "net_amount"])
@@ -161,9 +118,8 @@ class calculate_taxes_and_totals(object):
 		for item in self.doc.get("items"):
 			item_tax_map = self._load_item_tax_rate(item.item_tax_rate)
 			cumulated_tax_fraction = 0
-			total_inclusive_tax_amount_per_qty = 0
 			for i, tax in enumerate(self.doc.get("taxes")):
-				tax.tax_fraction_for_current_item, inclusive_tax_amount_per_qty = self.get_current_tax_fraction(tax, item_tax_map)
+				tax.tax_fraction_for_current_item = self.get_current_tax_fraction(tax, item_tax_map)
 
 				if i==0:
 					tax.grand_total_fraction_for_current_item = 1 + tax.tax_fraction_for_current_item
@@ -173,12 +129,9 @@ class calculate_taxes_and_totals(object):
 						+ tax.tax_fraction_for_current_item
 
 				cumulated_tax_fraction += tax.tax_fraction_for_current_item
-				total_inclusive_tax_amount_per_qty += inclusive_tax_amount_per_qty * flt(item.qty)
 
-			if not self.discount_amount_applied and item.qty and (cumulated_tax_fraction or total_inclusive_tax_amount_per_qty):
-				amount = flt(item.amount) - total_inclusive_tax_amount_per_qty
-
-				item.net_amount = flt(amount / (1 + cumulated_tax_fraction))
+			if cumulated_tax_fraction and not self.discount_amount_applied and item.qty:
+				item.net_amount = flt(item.amount / (1 + cumulated_tax_fraction))
 				item.net_rate = flt(item.net_amount / item.qty, item.precision("net_rate"))
 				item.discount_percentage = flt(item.discount_percentage,
 					item.precision("discount_percentage"))
@@ -194,7 +147,6 @@ class calculate_taxes_and_totals(object):
 			from tax inclusive amount
 		"""
 		current_tax_fraction = 0
-		inclusive_tax_amount_per_qty = 0
 
 		if cint(tax.included_in_print_rate):
 			tax_rate = self._get_tax_rate(tax, item_tax_map)
@@ -209,15 +161,10 @@ class calculate_taxes_and_totals(object):
 			elif tax.charge_type == "On Previous Row Total":
 				current_tax_fraction = (tax_rate / 100.0) * \
 					self.doc.get("taxes")[cint(tax.row_id) - 1].grand_total_fraction_for_current_item
-			
-			elif tax.charge_type == "On Item Quantity":
-				inclusive_tax_amount_per_qty = flt(tax_rate)
 
-		if getattr(tax, "add_deduct_tax", None) and tax.add_deduct_tax == "Deduct":
-			current_tax_fraction *= -1.0
-			inclusive_tax_amount_per_qty *= -1.0
-
-		return current_tax_fraction, inclusive_tax_amount_per_qty
+		if getattr(tax, "add_deduct_tax", None):
+			current_tax_fraction *= -1.0 if (tax.add_deduct_tax == "Deduct") else 1.0
+		return current_tax_fraction
 
 	def _get_tax_rate(self, tax, item_tax_map):
 		if tax.account_head in item_tax_map:
@@ -331,7 +278,7 @@ class calculate_taxes_and_totals(object):
 			current_tax_amount = (tax_rate / 100.0) * \
 				self.doc.get("taxes")[cint(tax.row_id) - 1].grand_total_for_current_item
 		elif tax.charge_type == "On Item Quantity":
-			current_tax_amount = tax_rate * item.qty
+			current_tax_amount = tax_rate * item.stock_qty
 
 		self.set_item_wise_tax(item, tax, tax_rate, current_tax_amount)
 
@@ -357,19 +304,11 @@ class calculate_taxes_and_totals(object):
 			last_tax = self.doc.get("taxes")[-1]
 			non_inclusive_tax_amount = sum([flt(d.tax_amount_after_discount_amount)
 				for d in self.doc.get("taxes") if not d.included_in_print_rate])
-
 			diff = self.doc.total + non_inclusive_tax_amount \
 				- flt(last_tax.total, last_tax.precision("total"))
-
-			# If discount amount applied, deduct the discount amount
-			# because self.doc.total is always without discount, but last_tax.total is after discount
-			if self.discount_amount_applied and self.doc.discount_amount:
-				diff -= flt(self.doc.discount_amount)
-
-			diff = flt(diff, self.doc.precision("rounding_adjustment"))
-
 			if diff and abs(diff) <= (5.0 / 10**last_tax.precision("tax_amount")):
-				self.doc.rounding_adjustment = diff
+				self.doc.rounding_adjustment = flt(flt(self.doc.rounding_adjustment) +
+					flt(diff), self.doc.precision("rounding_adjustment"))
 
 	def calculate_totals(self):
 		self.doc.grand_total = flt(self.doc.get("taxes")[-1].total) + flt(self.doc.rounding_adjustment) \
@@ -380,8 +319,8 @@ class calculate_taxes_and_totals(object):
 
 		self._set_in_company_currency(self.doc, ["total_taxes_and_charges", "rounding_adjustment"])
 
-		if self.doc.doctype in ["Quotation", "Sales Order", "Delivery Note", "Sales Invoice", "POS Invoice"]:
-			self.doc.base_grand_total = flt(self.doc.grand_total * self.doc.conversion_rate, self.doc.precision("base_grand_total")) \
+		if self.doc.doctype in ["Quotation", "Sales Order", "Delivery Note", "Sales Invoice"]:
+			self.doc.base_grand_total = flt(self.doc.grand_total * self.doc.conversion_rate) \
 				if self.doc.total_taxes_and_charges else self.doc.base_net_total
 		else:
 			self.doc.taxes_and_charges_added = self.doc.taxes_and_charges_deducted = 0.0
@@ -482,7 +421,7 @@ class calculate_taxes_and_totals(object):
 			actual_taxes_dict = {}
 
 			for tax in self.doc.get("taxes"):
-				if tax.charge_type in ["Actual", "On Item Quantity"]:
+				if tax.charge_type == "Actual":
 					tax_amount = self.get_tax_amount_if_for_valuation_or_deduction(tax.tax_amount, tax)
 					actual_taxes_dict.setdefault(tax.idx, tax_amount)
 				elif tax.row_id in actual_taxes_dict:
@@ -525,7 +464,7 @@ class calculate_taxes_and_totals(object):
 		if self.doc.doctype == "Sales Invoice":
 			self.calculate_paid_amount()
 
-		if self.doc.is_return and self.doc.return_against and not self.doc.get('is_pos'): return
+		if self.doc.is_return and self.doc.return_against: return
 
 		self.doc.round_floats_in(self.doc, ["grand_total", "total_advance", "write_off_amount"])
 		self._set_in_company_currency(self.doc, ['write_off_amount'])
@@ -543,7 +482,7 @@ class calculate_taxes_and_totals(object):
 			self.doc.round_floats_in(self.doc, ["paid_amount"])
 			change_amount = 0
 
-			if self.doc.doctype == "Sales Invoice" and not self.doc.get('is_return'):
+			if self.doc.doctype == "Sales Invoice":
 				self.calculate_write_off_amount()
 				self.calculate_change_amount()
 				change_amount = self.doc.change_amount \
@@ -554,9 +493,6 @@ class calculate_taxes_and_totals(object):
 
 			self.doc.outstanding_amount = flt(total_amount_to_pay - flt(paid_amount) + flt(change_amount),
 				self.doc.precision("outstanding_amount"))
-
-			if self.doc.doctype == 'Sales Invoice' and self.doc.get('is_pos') and self.doc.get('is_return'):
-			 	self.update_paid_amount_for_return(total_amount_to_pay)
 
 	def calculate_paid_amount(self):
 
@@ -607,8 +543,8 @@ class calculate_taxes_and_totals(object):
 		base_rate_with_margin = 0.0
 		if item.price_list_rate:
 			if item.pricing_rules and not self.doc.ignore_pricing_rule:
-				for d in json.loads(item.pricing_rules):
-					pricing_rule = frappe.get_cached_doc('Pricing Rule', d)
+				for d in item.pricing_rules.split(','):
+					pricing_rule = frappe.get_doc('Pricing Rule', d)
 
 					if (pricing_rule.margin_type == 'Amount' and pricing_rule.currency == self.doc.currency)\
 							or (pricing_rule.margin_type == 'Percentage'):
@@ -627,24 +563,6 @@ class calculate_taxes_and_totals(object):
 
 	def set_item_wise_tax_breakup(self):
 		self.doc.other_charges_calculation = get_itemised_tax_breakup_html(self.doc)
-
-	def update_paid_amount_for_return(self, total_amount_to_pay):
-		default_mode_of_payment = frappe.db.get_value('POS Payment Method',
-			{'parent': self.doc.pos_profile, 'default': 1}, ['mode_of_payment'], as_dict=1)
-
-		self.doc.payments = []
-
-		if default_mode_of_payment:
-			self.doc.append('payments', {
-				'mode_of_payment': default_mode_of_payment.mode_of_payment,
-				'amount': total_amount_to_pay
-			})
-		else:
-			self.doc.is_pos = 0
-			self.doc.pos_profile = ''
-
-		self.calculate_paid_amount()
-
 
 def get_itemised_tax_breakup_html(doc):
 	if not doc.taxes:
@@ -675,7 +593,8 @@ def get_itemised_tax_breakup_html(doc):
 			itemised_tax=itemised_tax,
 			itemised_taxable_amount=itemised_taxable_amount,
 			tax_accounts=tax_accounts,
-			doc=doc
+			conversion_rate=doc.conversion_rate,
+			currency=doc.currency
 		)
 	)
 
@@ -697,7 +616,7 @@ def get_itemised_tax_breakup_data(doc):
 
 	return itemised_tax, itemised_taxable_amount
 
-def get_itemised_tax(taxes, with_tax_account=False):
+def get_itemised_tax(taxes):
 	itemised_tax = {}
 	for tax in taxes:
 		if getattr(tax, "category", None) and tax.category=="Valuation":
@@ -721,9 +640,6 @@ def get_itemised_tax(taxes, with_tax_account=False):
 					tax_rate = tax_rate,
 					tax_amount = tax_amount
 				))
-
-				if with_tax_account:
-					itemised_tax[item_code][tax.description].tax_account = tax.account_head
 
 	return itemised_tax
 

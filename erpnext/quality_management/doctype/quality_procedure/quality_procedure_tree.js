@@ -1,11 +1,13 @@
+frappe.provide("frappe.treeview_settings");
+
 frappe.treeview_settings["Quality Procedure"] = {
 	ignore_fields:["parent_quality_procedure"],
 	get_tree_nodes: 'erpnext.quality_management.doctype.quality_procedure.quality_procedure.get_children',
 	add_tree_node: 'erpnext.quality_management.doctype.quality_procedure.quality_procedure.add_node',
 	filters: [
 		{
-			fieldname: "parent_quality_procedure",
-			fieldtype: "Link",
+			fieldname: "Quality Procedure",
+			fieldtype:"Link",
 			options: "Quality Procedure",
 			label: __("Quality Procedure"),
 			get_query: function() {
@@ -16,7 +18,6 @@ frappe.treeview_settings["Quality Procedure"] = {
 		},
 	],
 	breadcrumb: "Setup",
-	disable_add_node: true,
 	root_label: "All Quality Procedures",
 	get_tree_root: false,
 	menu_items: [
@@ -31,4 +32,8 @@ frappe.treeview_settings["Quality Procedure"] = {
 	onload: function(treeview) {
 		treeview.make_tree();
 	},
+	onrender: function() {
+		$("button:contains('Add Child')").remove();
+		$("button:contains('New')").remove();
+	}
 };

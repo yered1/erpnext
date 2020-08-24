@@ -12,9 +12,4 @@ def get_data():
                 'items': ['Leave Encashment']
             }
         ],
-        'reports': [
-			{
-				'items': ['Employee Leave Balance']
-			}
-		]
     }

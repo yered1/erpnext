@@ -24,6 +24,7 @@
 	{
 		"company": "_Test Company",
 		"doctype": "Stock Entry",
+		"posting_date": "2013-01-25",
 		"purpose": "Material Issue",
 		"stock_entry_type": "Material Issue",
 		"items": [
@@ -46,6 +47,7 @@
 	{
 		"company": "_Test Company",
 		"doctype": "Stock Entry",
+		"posting_date": "2013-01-25",
 		"purpose": "Material Transfer",
 		"stock_entry_type": "Material Transfer",
 		"items": [

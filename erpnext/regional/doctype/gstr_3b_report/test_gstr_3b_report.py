@@ -64,8 +64,7 @@ class TestGSTR3BReport(unittest.TestCase):
 		self.assertEqual(output["inter_sup"]["unreg_details"][0]["iamt"], 18),
 		self.assertEqual(output["sup_details"]["osup_nil_exmp"]["txval"], 100),
 		self.assertEqual(output["inward_sup"]["isup_details"][0]["inter"], 250)
-		self.assertEqual(output["itc_elg"]["itc_avl"][4]["samt"], 22.50)
-		self.assertEqual(output["itc_elg"]["itc_avl"][4]["camt"], 22.50)
+		self.assertEqual(output["itc_elg"]["itc_avl"][4]["iamt"], 45)
 
 def make_sales_invoice():
 	si = create_sales_invoice(company="_Test Company GST",
@@ -152,7 +151,6 @@ def create_purchase_invoices():
 			currency = 'INR',
 			warehouse = 'Finished Goods - _GST',
 			cost_center = 'Main - _GST',
-			expense_account = 'Cost of Goods Sold - _GST',
 			do_not_save=1,
 		)
 
@@ -160,18 +158,10 @@ def create_purchase_invoices():
 
 	pi.append("taxes", {
 			"charge_type": "On Net Total",
-			"account_head": "CGST - _GST",
+			"account_head": "IGST - _GST",
 			"cost_center": "Main - _GST",
-			"description": "CGST @ 9.0",
-			"rate": 9
-		})
-
-	pi.append("taxes", {
-			"charge_type": "On Net Total",
-			"account_head": "SGST - _GST",
-			"cost_center": "Main - _GST",
-			"description": "SGST @ 9.0",
-			"rate": 9
+			"description": "IGST @ 18.0",
+			"rate": 18
 		})
 
 	pi.submit()
@@ -182,13 +172,9 @@ def create_purchase_invoices():
 			currency = 'INR',
 			warehouse = 'Finished Goods - _GST',
 			cost_center = 'Main - _GST',
-			expense_account = 'Cost of Goods Sold - _GST',
 			item = "Milk",
 			do_not_save=1
 		)
-
-	pi1.shipping_address = "_Test Supplier GST-1-Billing"
-	pi1.save()
 
 	pi1.submit()
 
@@ -232,7 +218,6 @@ def make_suppliers():
 			"link_name": "_Test Registered Supplier"
 		})
 
-		address.is_shipping_address = 1
 		address.save()
 
 	if not frappe.db.exists('Address', '_Test Supplier GST-2-Billing'):

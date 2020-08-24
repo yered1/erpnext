@@ -6,14 +6,11 @@
 frappe.ui.form.on("Sales Order", {
 	setup: function(frm) {
 		frm.custom_make_buttons = {
-			'Delivery Note': 'Delivery Note',
-			'Pick List': 'Pick List',
+			'Delivery Note': 'Delivery',
 			'Sales Invoice': 'Invoice',
 			'Material Request': 'Material Request',
 			'Purchase Order': 'Purchase Order',
-			'Project': 'Project',
-			'Payment Entry': "Payment",
-			'Work Order': "Work Order"
+			'Project': 'Project'
 		}
 		frm.add_fetch('customer', 'tax_id', 'tax_id');
 
@@ -34,19 +31,10 @@ frappe.ui.form.on("Sales Order", {
 				}
 			};
 		})
-
-		frm.set_query("bom_no", "items", function(doc, cdt, cdn) {
-			var row = locals[cdt][cdn];
-			return {
-				filters: {
-					"item": row.item_code
-				}
-			}
-		});
 	},
 	refresh: function(frm) {
 		if(frm.doc.docstatus === 1 && frm.doc.status !== 'Closed'
-			&& flt(frm.doc.per_delivered, 6) < 100 && flt(frm.doc.per_billed, 6) < 100) {
+			&& flt(frm.doc.per_delivered) < 100 && flt(frm.doc.per_billed) < 100) {
 			frm.add_custom_button(__('Update Items'), () => {
 				erpnext.utils.update_child_items({
 					frm: frm,
@@ -70,6 +58,15 @@ frappe.ui.form.on("Sales Order", {
 				query: "erpnext.controllers.queries.get_project_name",
 				filters: {
 					'customer': doc.customer
+				}
+			}
+		});
+
+		frm.set_query("blanket_order", "items", function() {
+			return {
+				filters: {
+					"company": frm.doc.company,
+					"docstatus": 1
 				}
 			}
 		});
@@ -110,10 +107,10 @@ erpnext.selling.SalesOrderController = erpnext.selling.SellingController.extend(
 	refresh: function(doc, dt, dn) {
 		var me = this;
 		this._super();
-		let allow_delivery = false;
+		var allow_purchase = false;
+		var allow_delivery = false;
 
-		if (doc.docstatus==1) {
-
+		if(doc.docstatus==1) {
 			if(this.frm.has_perm("submit")) {
 				if(doc.status === 'On Hold') {
 				   // un-hold
@@ -132,11 +129,28 @@ erpnext.selling.SalesOrderController = erpnext.selling.SellingController.extend(
 					   me.frm.cscript.update_status('Re-open', 'Draft')
 				   }, __("Status"));
 			   }
-			}
+		    }
 			if(doc.status !== 'Closed') {
 				if(doc.status !== 'On Hold') {
-					allow_delivery = this.frm.doc.items.some(item => item.delivered_by_supplier === 0 && item.qty > flt(item.delivered_qty))
-						&& !this.frm.doc.skip_delivery_note
+					for (var i in this.frm.doc.items) {
+						var item = this.frm.doc.items[i];
+						if(item.delivered_by_supplier === 1 || item.supplier){
+							if(item.qty > flt(item.ordered_qty)
+								&& item.qty > flt(item.delivered_qty)) {
+								allow_purchase = true;
+							}
+						}
+
+						if (item.delivered_by_supplier===0) {
+							if(item.qty > flt(item.delivered_qty)) {
+								allow_delivery = true;
+							}
+						}
+
+						if (allow_delivery && allow_purchase) {
+							break;
+						}
+					}
 
 					if (this.frm.has_perm("submit")) {
 						if(flt(doc.per_delivered, 6) < 100 || flt(doc.per_billed) < 100) {
@@ -147,16 +161,9 @@ erpnext.selling.SalesOrderController = erpnext.selling.SellingController.extend(
 						}
 					}
 
-					this.frm.add_custom_button(__('Pick List'), () => this.create_pick_list(), __('Create'));
-
-					const order_is_a_sale = ["Sales", "Shopping Cart"].indexOf(doc.order_type) !== -1;
-					const order_is_maintenance = ["Maintenance"].indexOf(doc.order_type) !== -1;
-					// order type has been customised then show all the action buttons
-					const order_is_a_custom_sale = ["Sales", "Shopping Cart", "Maintenance"].indexOf(doc.order_type) === -1;
-
 					// delivery note
-					if(flt(doc.per_delivered, 6) < 100 && (order_is_a_sale || order_is_a_custom_sale) && allow_delivery) {
-						this.frm.add_custom_button(__('Delivery Note'), () => this.make_delivery_note_based_on_delivery_date(), __('Create'));
+					if(flt(doc.per_delivered, 6) < 100 && ["Sales", "Shopping Cart"].indexOf(doc.order_type)!==-1 && allow_delivery) {
+						this.frm.add_custom_button(__('Delivery'), () => this.make_delivery_note_based_on_delivery_date(), __('Create'));
 						this.frm.add_custom_button(__('Work Order'), () => this.make_work_order(), __('Create'));
 					}
 
@@ -166,22 +173,25 @@ erpnext.selling.SalesOrderController = erpnext.selling.SellingController.extend(
 					}
 
 					// material request
-					if(!doc.order_type || (order_is_a_sale || order_is_a_custom_sale) && flt(doc.per_delivered, 6) < 100) {
+					if(!doc.order_type || ["Sales", "Shopping Cart"].indexOf(doc.order_type)!==-1
+						&& flt(doc.per_delivered, 6) < 100) {
 						this.frm.add_custom_button(__('Material Request'), () => this.make_material_request(), __('Create'));
 						this.frm.add_custom_button(__('Request for Raw Materials'), () => this.make_raw_material_request(), __('Create'));
 					}
 
 					// make purchase order
+					if(flt(doc.per_delivered, 6) < 100 && allow_purchase) {
 						this.frm.add_custom_button(__('Purchase Order'), () => this.make_purchase_order(), __('Create'));
-
+					}
 					// maintenance
-					if(flt(doc.per_delivered, 2) < 100 && (order_is_maintenance || order_is_a_custom_sale)) {
+					if(flt(doc.per_delivered, 2) < 100 &&
+							["Sales", "Shopping Cart"].indexOf(doc.order_type)===-1) {
 						this.frm.add_custom_button(__('Maintenance Visit'), () => this.make_maintenance_visit(), __('Create'));
 						this.frm.add_custom_button(__('Maintenance Schedule'), () => this.make_maintenance_schedule(), __('Create'));
 					}
 
 					// project
-					if(flt(doc.per_delivered, 2) < 100 && (order_is_a_sale || order_is_a_custom_sale) && allow_delivery) {
+					if(flt(doc.per_delivered, 2) < 100 && ["Sales", "Shopping Cart"].indexOf(doc.order_type)!==-1 && allow_delivery) {
 							this.frm.add_custom_button(__('Project'), () => this.make_project(), __('Create'));
 					}
 
@@ -206,7 +216,7 @@ erpnext.selling.SalesOrderController = erpnext.selling.SellingController.extend(
 					}
 				}
 				// payment request
-				if(flt(doc.per_billed)<100) {
+				if(flt(doc.per_billed)==0) {
 					this.frm.add_custom_button(__('Payment Request'), () => this.make_payment_request(), __('Create'));
 					this.frm.add_custom_button(__('Payment'), () => this.make_payment_entry(), __('Create'));
 				}
@@ -221,32 +231,19 @@ erpnext.selling.SalesOrderController = erpnext.selling.SellingController.extend(
 						method: "erpnext.selling.doctype.quotation.quotation.make_sales_order",
 						source_doctype: "Quotation",
 						target: me.frm,
-						setters: [
-							{
-								label: "Customer",
-								fieldname: "party_name",
-								fieldtype: "Link",
-								options: "Customer",
-								default: me.frm.doc.customer || undefined
-							}
-						],
+						setters: {
+							customer: me.frm.doc.customer || undefined
+						},
 						get_query_filters: {
 							company: me.frm.doc.company,
 							docstatus: 1,
-							status: ["!=", "Lost"]
+							status: ["!=", "Lost"],
 						}
 					})
 				}, __("Get items from"));
 		}
 
 		this.order_type(doc);
-	},
-
-	create_pick_list() {
-		frappe.model.open_mapped_doc({
-			method: "erpnext.selling.doctype.sales_order.sales_order.create_pick_list",
-			frm: this.frm
-		})
 	},
 
 	make_work_order() {
@@ -271,44 +268,27 @@ erpnext.selling.SalesOrderController = erpnext.selling.SellingController.extend(
 					});
 					return;
 				} else {
-					const fields = [{
-						label: 'Items',
-						fieldtype: 'Table',
-						fieldname: 'items',
-						description: __('Select BOM and Qty for Production'),
-						fields: [{
-							fieldtype: 'Read Only',
-							fieldname: 'item_code',
-							label: __('Item Code'),
-							in_list_view: 1
-						}, {
-							fieldtype: 'Link',
-							fieldname: 'bom',
-							options: 'BOM',
-							reqd: 1,
-							label: __('Select BOM'),
-							in_list_view: 1,
-							get_query: function (doc) {
-								return { filters: { item: doc.item_code } };
+					var fields = [
+						{fieldtype:'Table', fieldname: 'items',
+							description: __('Select BOM and Qty for Production'),
+							fields: [
+								{fieldtype:'Read Only', fieldname:'item_code',
+									label: __('Item Code'), in_list_view:1},
+								{fieldtype:'Link', fieldname:'bom', options: 'BOM', reqd: 1,
+									label: __('Select BOM'), in_list_view:1, get_query: function(doc) {
+										return {filters: {item: doc.item_code}};
+									}},
+								{fieldtype:'Float', fieldname:'pending_qty', reqd: 1,
+									label: __('Qty'), in_list_view:1},
+								{fieldtype:'Data', fieldname:'sales_order_item', reqd: 1,
+									label: __('Sales Order Item'), hidden:1}
+							],
+							data: r.message,
+							get_data: function() {
+								return r.message
 							}
-						}, {
-							fieldtype: 'Float',
-							fieldname: 'pending_qty',
-							reqd: 1,
-							label: __('Qty'),
-							in_list_view: 1
-						}, {
-							fieldtype: 'Data',
-							fieldname: 'sales_order_item',
-							reqd: 1,
-							label: __('Sales Order Item'),
-							hidden: 1
-						}],
-						data: r.message,
-						get_data: () => {
-							return r.message
 						}
-					}]
+					]
 					var d = new frappe.ui.Dialog({
 						title: __('Select Items to Manufacture'),
 						fields: fields,
@@ -346,7 +326,7 @@ erpnext.selling.SalesOrderController = erpnext.selling.SellingController.extend(
 	},
 
 	order_type: function() {
-		this.toggle_delivery_date();
+		this.frm.fields_dict.items.grid.toggle_reqd("delivery_date", this.frm.doc.order_type == "Sales");
 	},
 
 	tc_name: function() {
@@ -358,15 +338,6 @@ erpnext.selling.SalesOrderController = erpnext.selling.SellingController.extend(
 			method: "erpnext.selling.doctype.sales_order.sales_order.make_material_request",
 			frm: this.frm
 		})
-	},
-
-	skip_delivery_note: function() {
-		this.toggle_delivery_date();
-	},
-
-	toggle_delivery_date: function() {
-		this.frm.fields_dict.items.grid.toggle_reqd("delivery_date",
-			(this.frm.doc.order_type == "Sales" && !this.frm.doc.skip_delivery_note));
 	},
 
 	make_raw_material_request: function() {
@@ -566,42 +537,6 @@ erpnext.selling.SalesOrderController = erpnext.selling.SellingController.extend(
 							filters: {'parent': me.frm.doc.name}
 						}
 					}},
-					{fieldname: 'items_for_po', fieldtype: 'Table', label: 'Select Items',
-					fields: [
-						{
-							fieldtype:'Data',
-							fieldname:'item_code',
-							label: __('Item'),
-							read_only:1,
-							in_list_view:1
-						},
-						{
-							fieldtype:'Data',
-							fieldname:'item_name',
-							label: __('Item name'),
-							read_only:1,
-							in_list_view:1
-						},
-						{
-							fieldtype:'Float',
-							fieldname:'qty',
-							label: __('Quantity'),
-							read_only: 1,
-							in_list_view:1
-						},
-						{
-							fieldtype:'Link',
-							read_only:1,
-							fieldname:'uom',
-							label: __('UOM'),
-							in_list_view:1
-						}
-					],
-					data: cur_frm.doc.items,
-					get_data: function() {
-						return cur_frm.doc.items
-					}
-				},
 
 				{"fieldtype": "Button", "label": __('Create Purchase Order'), "fieldname": "make_purchase_order", "cssClass": "btn-primary"},
 			]
@@ -609,22 +544,13 @@ erpnext.selling.SalesOrderController = erpnext.selling.SellingController.extend(
 
 		dialog.fields_dict.make_purchase_order.$input.click(function() {
 			var args = dialog.get_values();
-			let selected_items = dialog.fields_dict.items_for_po.grid.get_selected_children()
-			if(selected_items.length == 0) {
-				frappe.throw({message: 'Please select Item form Table', title: __('Message'), indicator:'blue'})
-			}
-			let selected_items_list = []
-			for(let i in selected_items){
-				selected_items_list.push(selected_items[i].item_code)
-			}
 			dialog.hide();
 			return frappe.call({
 				type: "GET",
-				method: "erpnext.selling.doctype.sales_order.sales_order.make_purchase_order",
+				method: "erpnext.selling.doctype.sales_order.sales_order.make_purchase_order_for_drop_shipment",
 				args: {
 					"source_name": me.frm.doc.name,
-					"for_supplier": args.supplier,
-					"selected_items": selected_items_list
+					"for_supplier": args.supplier
 				},
 				freeze: true,
 				callback: function(r) {
@@ -644,8 +570,6 @@ erpnext.selling.SalesOrderController = erpnext.selling.SellingController.extend(
 				}
 			})
 		});
-		dialog.get_field("items_for_po").grid.only_sortable()
-		dialog.get_field("items_for_po").refresh()
 		dialog.show();
 	},
 	hold_sales_order: function(){
@@ -667,8 +591,7 @@ erpnext.selling.SalesOrderController = erpnext.selling.SellingController.extend(
 						reference_doctype: me.frm.doctype,
 						reference_name: me.frm.docname,
 						content: __('Reason for hold: ')+data.reason_for_hold,
-						comment_email: frappe.session.user,
-						comment_by: frappe.session.user_fullname
+						comment_email: frappe.session.user
 					},
 					callback: function(r) {
 						if(!r.exc) {

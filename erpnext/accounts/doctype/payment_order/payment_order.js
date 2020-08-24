@@ -15,11 +15,11 @@ frappe.ui.form.on('Payment Order', {
 		if (frm.doc.docstatus == 0) {
 			frm.add_custom_button(__('Payment Request'), function() {
 				frm.trigger("get_from_payment_request");
-			}, __("Get Payments from"));
+			}, __("Get from"));
 
 			frm.add_custom_button(__('Payment Entry'), function() {
 				frm.trigger("get_from_payment_entry");
-			}, __("Get Payments from"));
+			}, __("Get from"));
 
 			frm.trigger('remove_button');
 		}
@@ -66,10 +66,9 @@ frappe.ui.form.on('Payment Order', {
 			get_query_filters: {
 				bank: frm.doc.bank,
 				docstatus: 1,
-				payment_type: ["!=", "Receive"],
 				bank_account: frm.doc.company_bank_account,
 				paid_from: frm.doc.account,
-				payment_order_status: ["=", "Initiated"]
+				payment_order_status: ["=", "Initiated"],
 			}
 		});
 	},

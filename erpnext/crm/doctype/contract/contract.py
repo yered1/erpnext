@@ -29,9 +29,6 @@ class Contract(Document):
 		self.update_contract_status()
 		self.update_fulfilment_status()
 
-	def before_submit(self):
-		self.signed_by_company = frappe.session.user
-
 	def before_update_after_submit(self):
 		self.update_contract_status()
 		self.update_fulfilment_status()
@@ -91,7 +88,7 @@ def get_status(start_date, end_date):
 	end_date = getdate(end_date)
 	now_date = getdate(nowdate())
 
-	return "Active" if start_date <= now_date <= end_date else "Inactive"
+	return "Active" if start_date < now_date < end_date else "Inactive"
 
 
 def update_status_for_contracts():

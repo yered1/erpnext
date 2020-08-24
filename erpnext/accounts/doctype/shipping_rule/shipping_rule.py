@@ -45,9 +45,7 @@ class ShippingRule(Document):
 		shipping_amount = 0.0
 		by_value = False
 
-		if doc.get_shipping_address():
-			# validate country only if there is address
-			self.validate_countries(doc)
+		self.validate_countries(doc)
 
 		if self.calculate_based_on == 'Net Total':
 			value = doc.base_net_total
@@ -72,7 +70,7 @@ class ShippingRule(Document):
 
 	def get_shipping_amount_from_rules(self, value):
 		for condition in self.get("conditions"):
-			if not condition.to_value or (flt(condition.from_value) <= flt(value) <= flt(condition.to_value)):
+			if not condition.to_value or (flt(condition.from_value) <= value <= flt(condition.to_value)):
 				return condition.shipping_amount
 
 		return 0.0
@@ -84,7 +82,7 @@ class ShippingRule(Document):
 			if not shipping_country:
 				frappe.throw(_('Shipping Address does not have country, which is required for this Shipping Rule'))
 			if shipping_country not in [d.country for d in self.countries]:
-				frappe.throw(_('Shipping rule not applicable for country {0} in Shipping Address').format(shipping_country))
+				frappe.throw(_('Shipping rule not applicable for country {0}'.format(shipping_country)))
 
 	def add_shipping_rule_to_tax_table(self, doc, shipping_amount):
 		shipping_charge = {

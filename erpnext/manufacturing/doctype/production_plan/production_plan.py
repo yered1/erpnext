@@ -3,7 +3,7 @@
 # For license information, please see license.txt
 
 from __future__ import unicode_literals
-import frappe, json, copy
+import frappe, json
 from frappe import msgprint, _
 from six import string_types, iteritems
 
@@ -22,7 +22,7 @@ class ProductionPlan(Document):
 	def validate_data(self):
 		for d in self.get('po_items'):
 			if not d.bom_no:
-				frappe.throw(_("Please select BOM for Item in Row {0}").format(d.idx))
+				frappe.throw(_("Please select BOM for Item in Row {0}".format(d.idx)))
 			else:
 				validate_bom_no(d.item_code, d.bom_no)
 
@@ -47,7 +47,7 @@ class ProductionPlan(Document):
 				'sales_order': data.name,
 				'sales_order_date': data.transaction_date,
 				'customer': data.customer,
-				'grand_total': data.base_grand_total
+				'grand_total': data.grand_total
 			})
 
 	def get_pending_material_requests(self):
@@ -98,24 +98,18 @@ class ProductionPlan(Document):
 		elif self.get_items_from == "Material Request":
 			self.get_mr_items()
 
-	def get_so_mr_list(self, field, table):
-		"""Returns a list of Sales Orders or Material Requests from the respective tables"""
-		so_mr_list = [d.get(field) for d in self.get(table) if d.get(field)]
-		return so_mr_list
-
 	def get_so_items(self):
-		# Check for empty table or empty rows
-		if not self.get("sales_orders") or not self.get_so_mr_list("sales_order", "sales_orders"):
-			frappe.throw(_("Please fill the Sales Orders table"), title=_("Sales Orders Required"))
-
-		so_list = self.get_so_mr_list("sales_order", "sales_orders")
+		so_list = [d.sales_order for d in self.sales_orders if d.sales_order]
+		if not so_list:
+			msgprint(_("Please enter Sales Orders in the above table"))
+			return []
 
 		item_condition = ""
 		if self.item_code:
 			item_condition = ' and so_item.item_code = {0}'.format(frappe.db.escape(self.item_code))
 
 		items = frappe.db.sql("""select distinct parent, item_code, warehouse,
-			(qty - work_order_qty) * conversion_factor as pending_qty, description, name
+			(qty - work_order_qty) * conversion_factor as pending_qty, name
 			from `tabSales Order Item` so_item
 			where parent in (%s) and docstatus = 1 and qty > work_order_qty
 			and exists (select name from `tabBOM` bom where bom.item=so_item.item_code
@@ -127,7 +121,7 @@ class ProductionPlan(Document):
 
 		packed_items = frappe.db.sql("""select distinct pi.parent, pi.item_code, pi.warehouse as warehouse,
 			(((so_item.qty - so_item.work_order_qty) * pi.qty) / so_item.qty)
-				as pending_qty, pi.parent_item, pi.description, so_item.name
+				as pending_qty, pi.parent_item, so_item.name
 			from `tabSales Order Item` so_item, `tabPacked Item` pi
 			where so_item.parent = pi.parent and so_item.docstatus = 1
 			and pi.parent_item = so_item.item_code
@@ -140,18 +134,17 @@ class ProductionPlan(Document):
 		self.calculate_total_planned_qty()
 
 	def get_mr_items(self):
-		# Check for empty table or empty rows
-		if not self.get("material_requests") or not self.get_so_mr_list("material_request", "material_requests"):
-			frappe.throw(_("Please fill the Material Requests table"), title=_("Material Requests Required"))
-
-		mr_list = self.get_so_mr_list("material_request", "material_requests")
+		mr_list = [d.material_request for d in self.material_requests if d.material_request]
+		if not mr_list:
+			msgprint(_("Please enter Material Requests in the above table"))
+			return []
 
 		item_condition = ""
 		if self.item_code:
 			item_condition = " and mr_item.item_code ={0}".format(frappe.db.escape(self.item_code))
 
-		items = frappe.db.sql("""select distinct parent, name, item_code, warehouse, description,
-			(qty - ordered_qty) * conversion_factor as pending_qty
+		items = frappe.db.sql("""select distinct parent, name, item_code, warehouse,
+			(qty - ordered_qty) as pending_qty
 			from `tabMaterial Request Item` mr_item
 			where parent in (%s) and docstatus = 1 and qty > ordered_qty
 			and exists (select name from `tabBOM` bom where bom.item=mr_item.item_code
@@ -169,7 +162,7 @@ class ProductionPlan(Document):
 				'include_exploded_items': 1,
 				'warehouse': data.warehouse,
 				'item_code': data.item_code,
-				'description': data.description or item_details.description,
+				'description': item_details and item_details.description or '',
 				'stock_uom': item_details and item_details.stock_uom or '',
 				'bom_no': item_details and item_details.bom_no or '',
 				'planned_qty': data.pending_qty,
@@ -181,12 +174,10 @@ class ProductionPlan(Document):
 			if self.get_items_from == "Sales Order":
 				pi.sales_order = data.parent
 				pi.sales_order_item = data.name
-				pi.description = data.description
 
 			elif self.get_items_from == "Material Request":
 				pi.material_request = data.parent
 				pi.material_request_item = data.name
-				pi.description = data.description
 
 	def calculate_total_planned_qty(self):
 		self.total_planned_qty = 0
@@ -329,8 +320,7 @@ class ProductionPlan(Document):
 				'qty': data.get("stock_qty") * item.get("qty"),
 				'production_plan': self.name,
 				'company': self.company,
-				'fg_warehouse': item.get("fg_warehouse"),
-				'update_consumed_material_cost_in_project': 0
+				'fg_warehouse': item.get("fg_warehouse")
 			})
 
 			work_order = self.create_work_order(data)
@@ -353,7 +343,6 @@ class ProductionPlan(Document):
 		if not wo.fg_warehouse:
 			wo.fg_warehouse = warehouse.get('fg_warehouse')
 		try:
-			wo.flags.ignore_mandatory = True
 			wo.insert()
 			return wo.name
 		except OverProductionError:
@@ -392,7 +381,6 @@ class ProductionPlan(Document):
 			# add item
 			material_request.append("items", {
 				"item_code": item.item_code,
-				"from_warehouse": item.from_warehouse,
 				"qty": item.quantity,
 				"schedule_date": schedule_date,
 				"warehouse": item.warehouse,
@@ -407,11 +395,7 @@ class ProductionPlan(Document):
 			# submit
 			material_request.flags.ignore_permissions = 1
 			material_request.run_method("set_missing_values")
-
-			if self.get('submit_material_request'):
-				material_request.submit()
-			else:
-				material_request.save()
+			material_request.submit()
 
 		frappe.flags.mute_messages = False
 
@@ -423,25 +407,26 @@ class ProductionPlan(Document):
 			msgprint(_("No material request created"))
 
 @frappe.whitelist()
-def download_raw_materials(doc):
-	if isinstance(doc, string_types):
-		doc = frappe._dict(json.loads(doc))
+def download_raw_materials(production_plan):
+	doc = frappe.get_doc('Production Plan', production_plan)
+	doc.check_permission()
 
 	item_list = [['Item Code', 'Description', 'Stock UOM', 'Required Qty', 'Warehouse',
 		'projected Qty', 'Actual Qty']]
 
-	for d in get_items_for_material_requests(doc):
+	doc = doc.as_dict()
+	for d in get_items_for_material_requests(doc, ignore_existing_ordered_qty=True):
 		item_list.append([d.get('item_code'), d.get('description'), d.get('stock_uom'), d.get('quantity'),
 			d.get('warehouse'), d.get('projected_qty'), d.get('actual_qty')])
 
-		if not doc.get('for_warehouse'):
+		if not doc.for_warehouse:
 			row = {'item_code': d.get('item_code')}
 			for bin_dict in get_bin_details(row, doc.company, all_warehouse=True):
 				if d.get("warehouse") == bin_dict.get('warehouse'):
 					continue
 
 				item_list.append(['', '', '', '', bin_dict.get('warehouse'),
-					bin_dict.get('projected_qty', 0), bin_dict.get('actual_qty', 0)])
+					bin_dict.get('projected_qty'), bin_dict.get('actual_qty')])
 
 	build_csv_response(item_list, doc.name)
 
@@ -516,10 +501,10 @@ def get_material_request_items(row, sales_order,
 	total_qty = row['qty']
 
 	required_qty = 0
-	if ignore_existing_ordered_qty or bin_dict.get("projected_qty", 0) < 0:
+	if ignore_existing_ordered_qty or bin_dict.get("projected_qty") < 0:
 		required_qty = total_qty
-	elif total_qty > bin_dict.get("projected_qty", 0):
-		required_qty = total_qty - bin_dict.get("projected_qty", 0)
+	elif total_qty > bin_dict.get("projected_qty"):
+		required_qty = total_qty - bin_dict.get("projected_qty")
 	if required_qty > 0 and required_qty < row['min_order_qty']:
 		required_qty = row['min_order_qty']
 	item_group_defaults = get_item_group_defaults(row.item_code, company)
@@ -549,9 +534,7 @@ def get_material_request_items(row, sales_order,
 			'projected_qty': bin_dict.get("projected_qty", 0),
 			'min_order_qty': row['min_order_qty'],
 			'material_request_type': row.get("default_material_request_type"),
-			'sales_order': sales_order,
-			'description': row.get("description"),
-			'uom': row.get("purchase_uom") or row.get("stock_uom")
+			'sales_order': sales_order
 		}
 
 def get_sales_orders(self):
@@ -617,46 +600,23 @@ def get_bin_details(row, company, for_warehouse=None, all_warehouse=False):
 	""".format(conditions=conditions), { "item_code": row['item_code'] }, as_dict=1)
 
 @frappe.whitelist()
-def get_items_for_material_requests(doc, warehouses=None):
+def get_items_for_material_requests(doc, ignore_existing_ordered_qty=None):
 	if isinstance(doc, string_types):
 		doc = frappe._dict(json.loads(doc))
 
-	warehouse_list = []
-	if warehouses:
-		if isinstance(warehouses, string_types):
-			warehouses = json.loads(warehouses)
-
-		for row in warehouses:
-			child_warehouses = frappe.db.get_descendants('Warehouse', row.get("warehouse"))
-			if child_warehouses:
-				warehouse_list.extend(child_warehouses)
-			else:
-				warehouse_list.append(row.get("warehouse"))
-
-	if warehouse_list:
-		warehouses = list(set(warehouse_list))
-
-		if doc.get("for_warehouse") and doc.get("for_warehouse") in warehouses:
-			warehouses.remove(doc.get("for_warehouse"))
-
-		warehouse_list = None
-
 	doc['mr_items'] = []
-
 	po_items = doc.get('po_items') if doc.get('po_items') else doc.get('items')
-	# Check for empty table or empty rows
-	if not po_items or not [row.get('item_code') for row in po_items if row.get('item_code')]:
-		frappe.throw(_("Items to Manufacture are required to pull the Raw Materials associated with it."),
-			title=_("Items Required"))
-
 	company = doc.get('company')
-	ignore_existing_ordered_qty = doc.get('ignore_existing_ordered_qty')
+	warehouse = doc.get('for_warehouse')
+
+	if not ignore_existing_ordered_qty:
+		ignore_existing_ordered_qty = doc.get('ignore_existing_ordered_qty')
 
 	so_item_details = frappe._dict()
 	for data in po_items:
 		planned_qty = data.get('required_qty') or data.get('planned_qty')
 		ignore_existing_ordered_qty = data.get('ignore_existing_ordered_qty') or ignore_existing_ordered_qty
-		warehouse = doc.get('for_warehouse')
+		warehouse = data.get("warehouse") or warehouse
 
 		item_details = {}
 		if data.get("bom") or data.get("bom_no"):
@@ -727,50 +687,11 @@ def get_items_for_material_requests(doc, warehouses=None):
 				if items:
 					mr_items.append(items)
 
-	if not ignore_existing_ordered_qty and warehouses:
-		new_mr_items = []
-		for item in mr_items:
-			get_materials_from_other_locations(item, warehouses, new_mr_items, company)
-
-		mr_items = new_mr_items
-
 	if not mr_items:
-		frappe.msgprint(_("""As raw materials projected quantity is more than required quantity,
-			there is no need to create material request for the warehouse {0}.
-			Still if you want to make material request,
-			kindly enable <b>Ignore Existing Projected Quantity</b> checkbox""").format(doc.get('for_warehouse')))
+		frappe.msgprint(_("""As raw materials projected quantity is more than required quantity, there is no need to create material request.
+			Still if you want to make material request, kindly enable <b>Ignore Existing Projected Quantity</b> checkbox"""))
 
 	return mr_items
-
-def get_materials_from_other_locations(item, warehouses, new_mr_items, company):
-	from erpnext.stock.doctype.pick_list.pick_list import get_available_item_locations
-	locations = get_available_item_locations(item.get("item_code"),
-		warehouses, item.get("quantity"), company, ignore_validation=True)
-
-	if not locations:
-		new_mr_items.append(item)
-		return
-
-	required_qty = item.get("quantity")
-	for d in locations:
-		if required_qty <=0: return
-
-		new_dict = copy.deepcopy(item)
-		quantity = required_qty if d.get("qty") > required_qty else d.get("qty")
-
-		if required_qty > 0:
-			new_dict.update({
-				"quantity": quantity,
-				"material_request_type": "Material Transfer",
-				"from_warehouse": d.get("warehouse")
-			})
-
-			required_qty -= quantity
-			new_mr_items.append(new_dict)
-
-	if required_qty:
-		item["quantity"] = required_qty
-		new_mr_items.append(item)
 
 @frappe.whitelist()
 def get_item_data(item_code):
@@ -778,8 +699,8 @@ def get_item_data(item_code):
 
 	return {
 		"bom_no": item_details.get("bom_no"),
-		"stock_uom": item_details.get("stock_uom")
-#		"description": item_details.get("description")
+		"stock_uom": item_details.get("stock_uom"),
+		"description": item_details.get("description")
 	}
 
 def get_sub_assembly_items(bom_no, bom_data):
@@ -799,6 +720,6 @@ def get_sub_assembly_items(bom_no, bom_data):
 				})
 
 			bom_item = bom_data.get(key)
-			bom_item["stock_qty"] += d.stock_qty / d.parent_bom_qty
+			bom_item["stock_qty"] += d.stock_qty
 
 			get_sub_assembly_items(bom_item.get("bom_no"), bom_data)

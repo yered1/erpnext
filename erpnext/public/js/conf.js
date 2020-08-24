@@ -11,6 +11,9 @@ $(document).bind('toolbar_setup', function() {
 		href="https://discuss.erpnext.com">Feedback</a></p>'
 
 
+	$('.navbar-home').html('<img class="erpnext-icon" src="'+
+			frappe.urllib.get_base_url()+'/assets/erpnext/images/erp-icon.svg" />');
+
 	$('[data-link="docs"]').attr("href", "https://erpnext.com/docs")
 	$('[data-link="issues"]').attr("href", "https://github.com/frappe/erpnext/issues")
 
@@ -29,6 +32,18 @@ $(document).bind('toolbar_setup', function() {
 
 });
 
+
+
+// doctypes created via tree
+$.extend(frappe.create_routes, {
+	"Customer Group": "Tree/Customer Group",
+	"Territory": "Tree/Territory",
+	"Item Group": "Tree/Item Group",
+	"Sales Person": "Tree/Sales Person",
+	"Account": "Tree/Account",
+	"Cost Center": "Tree/Cost Center"
+});
+
 // preferred modules for breadcrumbs
 $.extend(frappe.breadcrumbs.preferred, {
 	"Item Group": "Stock",
@@ -37,14 +52,5 @@ $.extend(frappe.breadcrumbs.preferred, {
 	"Territory": "Selling",
 	"Sales Person": "Selling",
 	"Sales Partner": "Selling",
-	"Brand": "Stock"
-});
-
-$.extend(frappe.breadcrumbs.module_map, {
-	'ERPNext Integrations': 'Integrations',
-	'Geo': 'Settings',
-	'Portal': 'Website',
-	'Utilities': 'Settings',
-	'Shopping Cart': 'Website',
-	'Contacts': 'CRM'
+	"Brand": "Selling"
 });

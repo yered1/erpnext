@@ -70,7 +70,7 @@ def validate_item_variant_attributes(item, args=None):
 
 		else:
 			attributes_list = attribute_values.get(attribute.lower(), [])
-			validate_item_attribute_value(attributes_list, attribute, value, item.name, from_variant=True)
+			validate_item_attribute_value(attributes_list, attribute, value, item.name)
 
 def validate_is_incremental(numeric_attribute, attribute, value, item):
 	from_range = numeric_attribute.from_range
@@ -93,20 +93,13 @@ def validate_is_incremental(numeric_attribute, attribute, value, item):
 			.format(attribute, from_range, to_range, increment, item),
 			InvalidItemAttributeValueError, title=_('Invalid Attribute'))
 
-def validate_item_attribute_value(attributes_list, attribute, attribute_value, item, from_variant=True):
+def validate_item_attribute_value(attributes_list, attribute, attribute_value, item):
 	allow_rename_attribute_value = frappe.db.get_single_value('Item Variant Settings', 'allow_rename_attribute_value')
 	if allow_rename_attribute_value:
 		pass
 	elif attribute_value not in attributes_list:
-		if from_variant:
-			frappe.throw(_("{0} is not a valid Value for Attribute {1} of Item {2}.").format(
-				frappe.bold(attribute_value), frappe.bold(attribute), frappe.bold(item)), InvalidItemAttributeValueError, title=_("Invalid Value"))
-		else:
-			msg = _("The value {0} is already assigned to an existing Item {1}.").format(
-				frappe.bold(attribute_value), frappe.bold(item))
-			msg += "<br>" + _("To still proceed with editing this Attribute Value, enable {0} in Item Variant Settings.").format(frappe.bold("Allow Rename Attribute Value"))
-
-			frappe.throw(msg, InvalidItemAttributeValueError, title=_('Edit Not Allowed'))
+		frappe.throw(_("Value {0} for Attribute {1} does not exist in the list of valid Item Attribute Values for Item {2}").format(
+			attribute_value, attribute, item), InvalidItemAttributeValueError, title=_('Invalid Attribute'))
 
 def get_attribute_values(item):
 	if not frappe.flags.attribute_values:
@@ -183,7 +176,7 @@ def enqueue_multiple_variant_creation(item, args):
 	for key in variants:
 		total_variants *= len(variants[key])
 	if total_variants >= 600:
-		frappe.throw(_("Please do not create more than 500 items at a time"))
+		frappe.msgprint("Please do not create more than 500 items at a time", raise_exception=1)
 		return
 	if total_variants < 10:
 		return create_multiple_variants(item, args)
@@ -289,8 +282,8 @@ def copy_attributes_to_variant(item, variant):
 
 	if 'description' not in allow_fields:
 		if not variant.description:
-				variant.description = ""
-	else:
+			variant.description = ""
+
 		if item.variant_based_on=='Item Attribute':
 			if variant.attributes:
 				attributes_description = item.description + " "
@@ -298,7 +291,7 @@ def copy_attributes_to_variant(item, variant):
 					attributes_description += "<div>" + d.attribute + ": " + cstr(d.attribute_value) + "</div>"
 
 				if attributes_description not in variant.description:
-					variant.description = attributes_description
+					variant.description += attributes_description
 
 def make_variant_item_code(template_item_code, template_item_name, variant):
 	"""Uses template's item code and abbreviations to make variant's item code"""

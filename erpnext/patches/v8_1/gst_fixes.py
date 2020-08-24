@@ -1,8 +1,7 @@
 from __future__ import unicode_literals
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_field
-from erpnext.regional.address_template.setup import set_up_address_templates
-
+from erpnext.regional.india.setup import update_address_template
 
 def execute():
 	company = frappe.get_all('Company', filters = {'country': 'India'})
@@ -11,9 +10,8 @@ def execute():
 
 	update_existing_custom_fields()
 	add_custom_fields()
-	set_up_address_templates(default_country='India')
+	update_address_template()
 	frappe.reload_doc("regional", "print_format", "gst_tax_invoice")
-
 
 def update_existing_custom_fields():
 	frappe.db.sql("""update `tabCustom Field` set label = 'HSN/SAC'
@@ -35,7 +33,6 @@ def update_existing_custom_fields():
 	frappe.db.sql("""update `tabCustom Field` set insert_after = 'description'
 		where fieldname='gst_hsn_code' and dt in ('Sales Invoice Item', 'Purchase Invoice Item')
 	""")
-
 
 def add_custom_fields():
 	hsn_sac_field = dict(fieldname='gst_hsn_code', label='HSN/SAC',

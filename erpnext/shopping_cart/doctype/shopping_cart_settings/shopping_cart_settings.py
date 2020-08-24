@@ -80,7 +80,6 @@ def get_shopping_cart_settings():
 
 	return frappe.local.shopping_cart_settings
 
-@frappe.whitelist(allow_guest=True)
 def is_cart_enabled():
 	return get_shopping_cart_settings().enabled
 

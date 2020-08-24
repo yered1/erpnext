@@ -51,8 +51,7 @@ class TestProductionPlan(unittest.TestCase):
 
 		for name in material_requests:
 			mr = frappe.get_doc('Material Request', name[0])
-			if mr.docstatus != 0:
-				mr.cancel()
+			mr.cancel()
 
 		for name in work_orders:
 			mr = frappe.delete_doc('Work Order', name[0])
@@ -62,9 +61,9 @@ class TestProductionPlan(unittest.TestCase):
 
 	def test_production_plan_for_existing_ordered_qty(self):
 		sr1 = create_stock_reconciliation(item_code="Raw Material Item 1",
-			target="_Test Warehouse - _TC", qty=1, rate=110)
+			target="_Test Warehouse - _TC", qty=1, rate=100)
 		sr2 = create_stock_reconciliation(item_code="Raw Material Item 2",
-			target="_Test Warehouse - _TC", qty=1, rate=120)
+			target="_Test Warehouse - _TC", qty=1, rate=100)
 
 		pln = create_production_plan(item_code='Test Production Item 1', ignore_existing_ordered_qty=0)
 		self.assertTrue(len(pln.mr_items), 1)
@@ -86,9 +85,9 @@ class TestProductionPlan(unittest.TestCase):
 
 	def test_production_plan_without_multi_level_for_existing_ordered_qty(self):
 		sr1 = create_stock_reconciliation(item_code="Raw Material Item 1",
-			target="_Test Warehouse - _TC", qty=1, rate=130)
+			target="_Test Warehouse - _TC", qty=1, rate=100)
 		sr2 = create_stock_reconciliation(item_code="Subassembly Item 1",
-			target="_Test Warehouse - _TC", qty=1, rate=140)
+			target="_Test Warehouse - _TC", qty=1, rate=100)
 
 		pln = create_production_plan(item_code='Test Production Item 1',
 			use_multi_level_bom=0, ignore_existing_ordered_qty=0)
@@ -153,7 +152,7 @@ class TestProductionPlan(unittest.TestCase):
 				make_bom(item = item, raw_materials = raw_materials)
 		production_plan = create_production_plan(item_code = 'Production Item CUST')
 		production_plan.make_material_request()
-		material_request = frappe.db.get_value('Material Request Item', {'production_plan': production_plan.name, 'item_code': 'CUST-0987'}, 'parent')
+		material_request = frappe.get_value('Material Request Item', {'production_plan': production_plan.name}, 'parent')
 		mr = frappe.get_doc('Material Request', material_request)
 		self.assertTrue(mr.material_request_type, 'Customer Provided')
 		self.assertTrue(mr.customer, '_Test Customer')
@@ -192,10 +191,9 @@ def make_bom(**args):
 	args = frappe._dict(args)
 
 	bom = frappe.get_doc({
-		'doctype': 'BOM',
+		'doctype': "BOM",
 		'is_default': 1,
 		'item': args.item,
-		'currency': args.currency or 'USD',
 		'quantity': args.quantity or 1,
 		'company': args.company or '_Test Company'
 	})
@@ -213,4 +211,3 @@ def make_bom(**args):
 
 	bom.insert(ignore_permissions=True)
 	bom.submit()
-	return bom

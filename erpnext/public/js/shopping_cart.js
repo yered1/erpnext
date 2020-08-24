@@ -5,19 +5,6 @@
 frappe.provide("erpnext.shopping_cart");
 var shopping_cart = erpnext.shopping_cart;
 
-var getParams = function (url) {
-	var params = [];
-	var parser = document.createElement('a');
-	parser.href = url;
-	var query = parser.search.substring(1);
-	var vars = query.split('&');
-	for (var i = 0; i < vars.length; i++) {
-		var pair = vars[i].split('=');
-		params[pair[0]] = decodeURIComponent(pair[1]);
-	}
-	return params;
-};
-
 frappe.ready(function() {
 	var full_name = frappe.session && frappe.session.user_fullname;
 	// update user
@@ -25,37 +12,11 @@ frappe.ready(function() {
 		$('.navbar li[data-label="User"] a')
 			.html('<i class="fa fa-fixed-width fa fa-user"></i> ' + full_name);
 	}
-	// set coupon code and sales partner code
 
-	var url_args = getParams(window.location.href);
-
-	var referral_coupon_code = url_args['cc'];
-	var referral_sales_partner = url_args['sp'];
-
-	var d = new Date();
-	// expires within 30 minutes
-	d.setTime(d.getTime() + (0.02 * 24 * 60 * 60 * 1000));
-	var expires = "expires="+d.toUTCString();
-	if (referral_coupon_code) {
-		document.cookie = "referral_coupon_code=" + referral_coupon_code + ";" + expires + ";path=/";
-	}
-	if (referral_sales_partner) {
-		document.cookie = "referral_sales_partner=" + referral_sales_partner + ";" + expires + ";path=/";
-	}
-	referral_coupon_code=frappe.get_cookie("referral_coupon_code");
-	referral_sales_partner=frappe.get_cookie("referral_sales_partner");
-
-	if (referral_coupon_code && $(".tot_quotation_discount").val()==undefined ) {
-		$(".txtcoupon").val(referral_coupon_code);
-	}
-	if (referral_sales_partner) {
-		$(".txtreferral_sales_partner").val(referral_sales_partner);
-	}
 	// update login
 	shopping_cart.show_shoppingcart_dropdown();
 	shopping_cart.set_cart_count();
 	shopping_cart.bind_dropdown_cart_buttons();
-	shopping_cart.show_cart_navbar();
 });
 
 $.extend(shopping_cart, {
@@ -178,12 +139,4 @@ $.extend(shopping_cart, {
 
 	},
 
-	show_cart_navbar: function () {
-		frappe.call({
-			method: "erpnext.shopping_cart.doctype.shopping_cart_settings.shopping_cart_settings.is_cart_enabled",
-			callback: function(r) {
-				$(".shopping-cart").toggleClass('hidden', r.message ? false : true);
-			}
-		});
-	}
 });

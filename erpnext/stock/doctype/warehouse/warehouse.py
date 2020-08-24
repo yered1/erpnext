@@ -3,7 +3,7 @@
 
 from __future__ import unicode_literals
 import frappe, erpnext
-from frappe.utils import cint, nowdate
+from frappe.utils import cint
 from frappe import throw, _
 from frappe.utils.nestedset import NestedSet
 from erpnext.stock import get_warehouse_account
@@ -177,26 +177,7 @@ def convert_to_group_or_ledger():
 	return frappe.get_doc("Warehouse", args.docname).convert_to_group_or_ledger()
 
 def get_child_warehouses(warehouse):
-	lft, rgt = frappe.get_cached_value("Warehouse", warehouse, ["lft", "rgt"])
+	p_warehouse = frappe.get_doc("Warehouse", warehouse)
 
 	return frappe.db.sql_list("""select name from `tabWarehouse`
-		where lft >= %s and rgt <= %s""", (lft, rgt))
-
-def get_warehouses_based_on_account(account, company=None):
-	warehouses = []
-	for d in frappe.get_all("Warehouse", fields = ["name", "is_group"],
-		filters = {"account": account}):
-		if d.is_group:
-			warehouses.extend(get_child_warehouses(d.name))
-		else:
-			warehouses.append(d.name)
-
-	if (not warehouses and company and
-		frappe.get_cached_value("Company", company, "default_inventory_account") == account):
-		warehouses = [d.name for d in frappe.get_all("Warehouse", filters={'is_group': 0})]
-
-	if not warehouses:
-		frappe.throw(_("Warehouse not found against the account {0}")
-			.format(account))
-
-	return warehouses
+		where lft >= %s and rgt =< %s""", (p_warehouse.lft, p_warehouse.rgt))

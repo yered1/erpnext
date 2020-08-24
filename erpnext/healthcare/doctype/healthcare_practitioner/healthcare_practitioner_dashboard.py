@@ -9,11 +9,7 @@ def get_data():
 		'transactions': [
 			{
 				'label': _('Appointments and Patient Encounters'),
-				'items': ['Patient Appointment', 'Patient Encounter', 'Fee Validity']
-			},
-			{
-				'label': _('Consultation'),
-				'items': ['Clinical Procedure', 'Lab Test']
+				'items': ['Patient Appointment', 'Patient Encounter']
 			}
 		]
 	}

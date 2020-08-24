@@ -3,11 +3,6 @@
 
 frappe.ui.form.on('Production Plan', {
 	setup: function(frm) {
-		frm.custom_make_buttons = {
-			'Work Order': 'Work Order',
-			'Material Request': 'Material Request',
-		};
-
 		frm.fields_dict['po_items'].grid.get_field('warehouse').get_query = function(doc) {
 			return {
 				filters: {
@@ -19,8 +14,7 @@ frappe.ui.form.on('Production Plan', {
 		frm.set_query('for_warehouse', function(doc) {
 			return {
 				filters: {
-					company: doc.company,
-					is_group: 0
+					company: doc.company
 				}
 			}
 		});
@@ -72,13 +66,12 @@ frappe.ui.form.on('Production Plan', {
 			}, __('Create'));
 		}
 
-		frm.page.set_inner_btn_group_as_primary(__('Create'));
 		frm.trigger("material_requirement");
 
 		const projected_qty_formula = ` <table class="table table-bordered" style="background-color: #f9f9f9;">
 			<tr><td style="padding-left:25px">
 				<div>
-				<h3 style="text-decoration: underline;">
+				<h3>
 					<a href = "https://erpnext.com/docs/user/manual/en/stock/projected-quantity">
 						${__("Projected Quantity Formula")}
 					</a>
@@ -110,7 +103,7 @@ frappe.ui.form.on('Production Plan', {
 								${__('Reserved Qty for Production: Raw materials quantity to make manufacturing items.')}
 							</li>
 							<li>
-								${__('Reserved Qty for Subcontract: Raw materials quantity to make subcontracted items.')}
+								${__('Reserved Qty for Subcontract: Raw materials quantity to make subcotracted items.')}
 							</li>
 						</ul>
 					</div>
@@ -133,20 +126,6 @@ frappe.ui.form.on('Production Plan', {
 	},
 
 	make_material_request: function(frm) {
-
-		frappe.confirm(__("Do you want to submit the material request"),
-			function() {
-				frm.events.create_material_request(frm, 1);
-			},
-			function() {
-				frm.events.create_material_request(frm, 0);
-			}
-		);
-	},
-
-	create_material_request: function(frm, submit) {
-		frm.doc.submit_material_request = submit;
-
 		frappe.call({
 			method: "make_material_request",
 			freeze: true,
@@ -189,53 +168,12 @@ frappe.ui.form.on('Production Plan', {
 	},
 
 	get_items_for_mr: function(frm) {
-		if (!frm.doc.for_warehouse) {
-			frappe.throw(__("Select warehouse for material requests"));
-		}
-
-		if (frm.doc.ignore_existing_ordered_qty) {
-			frm.events.get_items_for_material_requests(frm);
-		} else {
-			const title = __("Transfer Materials For Warehouse {0}", [frm.doc.for_warehouse]);
-			var dialog = new frappe.ui.Dialog({
-				title: title,
-				fields: [
-					{
-						"fieldtype": "Table MultiSelect", "label": __("Source Warehouses (Optional)"),
-						"fieldname": "warehouses", "options": "Production Plan Material Request Warehouse",
-						"description": __("System will pickup the materials from the selected warehouses. If not specified, system will create material request for purchase."),
-						get_query: function () {
-							return {
-								filters: {
-									company: frm.doc.company
-								}
-							};
-						},
-					},
-				]
-			});
-
-			dialog.show();
-
-			dialog.set_primary_action(__("Get Items"), () => {
-				let warehouses = dialog.get_values().warehouses;
-				frm.events.get_items_for_material_requests(frm, warehouses);
-				dialog.hide();
-			});
-		}
-	},
-
-	get_items_for_material_requests: function(frm, warehouses) {
-		const set_fields = ['actual_qty', 'item_code','item_name', 'description', 'uom', 'from_warehouse',
-			'min_order_qty', 'quantity', 'sales_order', 'warehouse', 'projected_qty', 'material_request_type'];
-
+		const set_fields = ['actual_qty', 'item_code',
+			'item_name', 'min_order_qty', 'quantity', 'sales_order', 'warehouse', 'projected_qty', 'material_request_type'];
 		frappe.call({
 			method: "erpnext.manufacturing.doctype.production_plan.production_plan.get_items_for_material_requests",
 			freeze: true,
-			args: {
-				doc: frm.doc,
-				warehouses: warehouses || []
-			},
+			args: {doc: frm.doc},
 			callback: function(r) {
 				if(r.message) {
 					frm.set_value('mr_items', []);
@@ -254,14 +192,14 @@ frappe.ui.form.on('Production Plan', {
 	},
 
 	for_warehouse: function(frm) {
-		if (frm.doc.mr_items && frm.doc.for_warehouse) {
+		if (frm.doc.mr_items) {
 			frm.trigger("get_items_for_mr");
 		}
 	},
 
 	download_materials_required: function(frm) {
 		let get_template_url = 'erpnext.manufacturing.doctype.production_plan.production_plan.download_raw_materials';
-		open_url_post(frappe.request.url, { cmd: get_template_url, doc: frm.doc });
+		open_url_post(frappe.request.url, { cmd: get_template_url, production_plan: frm.doc.name });
 	},
 
 	show_progress: function(frm) {
@@ -281,7 +219,7 @@ frappe.ui.form.on('Production Plan', {
 
 		if (item_wise_qty) {
 			for (var key in item_wise_qty) {
-				title += __('Item {0}: {1} qty produced. ', [key, item_wise_qty[key]]);
+				title += __('Item {0}: {1} qty produced, ', [key, item_wise_qty[key]]);
 			}
 		}
 
@@ -320,12 +258,11 @@ frappe.ui.form.on("Production Plan Item", {
 frappe.ui.form.on("Material Request Plan Item", {
 	warehouse: function(frm, cdt, cdn) {
 		const row = locals[cdt][cdn];
-		if (row.warehouse && row.item_code && frm.doc.company) {
+		if (row.warehouse && row.item_code) {
 			frappe.call({
 				method: "erpnext.manufacturing.doctype.production_plan.production_plan.get_bin_details",
 				args: {
 					row: row,
-					company: frm.doc.company,
 					for_warehouse: row.warehouse
 				},
 				callback: function(r) {
@@ -338,11 +275,3 @@ frappe.ui.form.on("Material Request Plan Item", {
 		}
 	}
 });
-
-cur_frm.fields_dict['sales_orders'].grid.get_field("sales_order").get_query = function() {
-	return{
-		filters: [
-			['Sales Order','docstatus', '=' ,1]
-		]
-	}
-};

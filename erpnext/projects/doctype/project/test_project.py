@@ -7,7 +7,7 @@ import frappe, unittest
 test_records = frappe.get_test_records('Project')
 test_ignore = ["Sales Order"]
 
-from erpnext.projects.doctype.project_template.test_project_template import get_project_template, make_project_template
+from erpnext.projects.doctype.project_template.test_project_template import get_project_template
 from erpnext.projects.doctype.project.project import set_project_status
 
 from frappe.utils import getdate
@@ -19,18 +19,35 @@ class TestProject(unittest.TestCase):
 
 		project = get_project('Test Project with Template')
 
-		tasks = frappe.get_all('Task', '*', dict(project=project.name), order_by='creation asc')
+		project.load_tasks()
 
-		task1 = tasks[0]
-		self.assertEqual(task1.subject, 'Task 1')
+		task1 = project.tasks[0]
+		self.assertEqual(task1.title, 'Task 1')
 		self.assertEqual(task1.description, 'Task 1 description')
-		self.assertEqual(getdate(task1.exp_start_date), getdate('2019-01-01'))
-		self.assertEqual(getdate(task1.exp_end_date), getdate('2019-01-04'))
+		self.assertEqual(getdate(task1.start_date), getdate('2019-01-01'))
+		self.assertEqual(getdate(task1.end_date), getdate('2019-01-04'))
 
-		self.assertEqual(len(tasks), 4)
-		task4 = tasks[3]
-		self.assertEqual(task4.subject, 'Task 4')
-		self.assertEqual(getdate(task4.exp_end_date), getdate('2019-01-06'))
+		self.assertEqual(len(project.tasks), 4)
+		task4 = project.tasks[3]
+		self.assertEqual(task4.title, 'Task 4')
+		self.assertEqual(getdate(task4.end_date), getdate('2019-01-06'))
+
+	def test_bulk_complete_and_cancel(self):
+		frappe.db.sql('delete from tabTask where project = "Test Project for Bulk Actions"')
+		frappe.delete_doc('Project', 'Test Project for Bulk Actions')
+
+		project = get_project('Test Project for Bulk Actions')
+		set_project_status(project.name, 'Completed')
+
+		# check all tasks are completed
+		self.assertTrue(all([d.status=='Completed' for d in
+			frappe.get_all('Task', ['name', 'status'], dict(project = project.name))]))
+
+		# check all tasks are cancelled
+		set_project_status(project.name, 'Cancelled')
+		self.assertTrue(all([d.status=='Cancelled' for d in
+			frappe.get_all('Task', ['name', 'status'], dict(project = project.name))]))
+
 
 def get_project(name):
 	template = get_project_template()
@@ -42,25 +59,5 @@ def get_project(name):
 		project_template = template.name,
 		expected_start_date = '2019-01-01'
 	)).insert()
-
-	return project
-
-def make_project(args):
-	args = frappe._dict(args)
-	if args.project_template_name:
-		template = make_project_template(args.project_template_name)
-	else:
-		template = get_project_template()
-
-	project = frappe.get_doc(dict(
-		doctype = 'Project',
-		project_name = args.project_name,
-		status = 'Open',
-		project_template = template.name,
-		expected_start_date = args.start_date
-	))
-
-	if not frappe.db.exists("Project", args.project_name):
-		project.insert()
 
 	return project

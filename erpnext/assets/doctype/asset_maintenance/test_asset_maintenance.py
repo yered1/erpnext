@@ -73,10 +73,8 @@ def create_asset_data():
 			'doctype': 'Location',
 			'location_name': 'Test Location'
 		}).insert()
-	
+
 	if not frappe.db.exists("Item", "Photocopier"):
-		meta = frappe.get_meta('Asset')
-		naming_series = meta.get_field("naming_series").options
 		frappe.get_doc({
 			"doctype": "Item",
 			"item_code": "Photocopier",
@@ -85,9 +83,7 @@ def create_asset_data():
 			"company": "_Test Company",
 			"is_fixed_asset": 1,
 			"is_stock_item": 0,
-			"asset_category": "Equipment",
-			"auto_create_assets": 1,
-			"asset_naming_series": naming_series
+			"asset_category": "Equipment"
 		}).insert()
 
 def create_maintenance_team():
@@ -125,15 +121,13 @@ def get_maintenance_tasks():
 			"start_date": nowdate(),
 			"periodicity": "Monthly",
 			"maintenance_type": "Preventive Maintenance",
-			"maintenance_status": "Planned",
-			"assign_to": "marcus@abc.com"
+			"maintenance_status": "Planned"
 			},
 			{"maintenance_task": "Check Gears",
 			"start_date": nowdate(),
 			"periodicity": "Yearly",
 			"maintenance_type": "Calibration",
-			"maintenance_status": "Planned",
-			"assign_to": "thalia@abc.com"
+			"maintenance_status": "Planned"
 			}
 		]
 

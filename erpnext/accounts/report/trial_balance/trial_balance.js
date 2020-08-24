@@ -46,7 +46,7 @@ frappe.require("assets/erpnext/js/financial_statements.js", function() {
 				"default": frappe.defaults.get_user_default("year_end_date"),
 			},
 			{
-				"fieldname": "cost_center",
+				"fieldname":"cost_center",
 				"label": __("Cost Center"),
 				"fieldtype": "Link",
 				"options": "Cost Center",
@@ -61,13 +61,7 @@ frappe.require("assets/erpnext/js/financial_statements.js", function() {
 				}
 			},
 			{
-				"fieldname": "project",
-				"label": __("Project"),
-				"fieldtype": "Link",
-				"options": "Project"
-			},
-			{
-				"fieldname": "finance_book",
+				"fieldname":"finance_book",
 				"label": __("Finance Book"),
 				"fieldtype": "Link",
 				"options": "Finance Book",
@@ -91,8 +85,7 @@ frappe.require("assets/erpnext/js/financial_statements.js", function() {
 			{
 				"fieldname": "include_default_book_entries",
 				"label": __("Include Default Book Entries"),
-				"fieldtype": "Check",
-				"default": 1
+				"fieldtype": "Check"
 			}
 		],
 		"formatter": erpnext.financial_statements.formatter,
@@ -101,9 +94,5 @@ frappe.require("assets/erpnext/js/financial_statements.js", function() {
 		"parent_field": "parent_account",
 		"initial_depth": 3
 	}
-
-	erpnext.utils.add_dimensions('Trial Balance', 6);
 });
-
-
 

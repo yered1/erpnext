@@ -49,9 +49,10 @@ class PackingSlip(Document):
 			frappe.msgprint(_("Please specify a valid 'From Case No.'"), raise_exception=1)
 		elif not self.to_case_no:
 			self.to_case_no = self.from_case_no
-		elif cint(self.from_case_no) > cint(self.to_case_no):
+		elif self.from_case_no > self.to_case_no:
 			frappe.msgprint(_("'To Case No.' cannot be less than 'From Case No.'"),
 				raise_exception=1)
+
 
 		res = frappe.db.sql("""SELECT name FROM `tabPacking Slip`
 			WHERE delivery_note = %(delivery_note)s AND docstatus = 1 AND
@@ -175,8 +176,6 @@ class PackingSlip(Document):
 
 		self.update_item_details()
 
-@frappe.whitelist()
-@frappe.validate_and_sanitize_search_inputs
 def item_details(doctype, txt, searchfield, start, page_len, filters):
 	from erpnext.controllers.queries import get_match_cond
 	return frappe.db.sql("""select name, item_name, description from `tabItem`

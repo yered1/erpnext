@@ -29,7 +29,7 @@ class Quiz {
 			this.questions.push(question)
 			this.wrapper.appendChild(question_wrapper);
 		})
-		if (data.activity && data.activity.is_complete) {
+		if (data.activity.is_complete) {
 			this.disable()
 			let indicator = 'red'
 			let message = 'Your are not allowed to attempt the quiz again.'
@@ -68,7 +68,7 @@ class Quiz {
 		}).then(res => {
 			this.submit_btn.remove()
 			if (!res.message) {
-				frappe.throw(__("Something went wrong while evaluating the quiz."))
+				frappe.throw("Something went wrong while evaluating the quiz.")
 			}
 
 			let indicator = 'red'
